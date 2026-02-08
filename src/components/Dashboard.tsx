@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useFinance } from '../context/FinanceContext';
+import { useGroup } from '../context/GroupContext'; // Import useGroup
 import { formatCurrency } from '../utils/finance';
 import { calculateInvestmentReturn } from '../utils/investment';
 import { TrendingUp, AlertCircle, CheckCircle, Clock, Wallet, TrendingDown, LineChart, ArrowUpRight, PiggyBank, Shuffle, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
@@ -23,6 +24,7 @@ const StatCard = ({ title, value, icon: Icon, colorClass, bgClass, subValue, lab
 
 export const Dashboard = () => {
   const { bills, incomes, randomExpenses, investments } = useFinance();
+  const { groups, currentGroup, selectGroup } = useGroup(); // Use useGroup
   const [currentDate, setCurrentDate] = useState(new Date());
 
   console.log('Dashboard Rendered. Date:', currentDate);
@@ -122,24 +124,38 @@ export const Dashboard = () => {
   return (
     <div className="space-y-8 animated-fade-in pb-10">
       
-      {/* HEADER: DATE SELECTOR */}
+      {/* HEADER: DATE SELECTOR AND GROUP SELECTOR */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold text-gray-900">Visão Mensal</h2>
           <p className="text-gray-500 mt-1">Acompanhe suas finanças mensais.</p>
         </div>
         
-        <div className="flex items-center bg-white rounded-xl shadow-sm border border-gray-200 p-1">
-          <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <div className="px-6 py-2 flex items-center font-bold text-gray-800 text-lg min-w-[200px] justify-center capitalize">
-            <Calendar className="w-5 h-5 mr-2 text-indigo-500" />
-            {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          {groups.length > 0 && (
+            <select
+              className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white shadow-sm"
+              value={currentGroup?.id || ''}
+              onChange={(e) => selectGroup(e.target.value)}
+            >
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>{group.name}</option>
+              ))}
+            </select>
+          )}
+
+          <div className="flex items-center bg-white rounded-xl shadow-sm border border-gray-200 p-1">
+            <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div className="px-6 py-2 flex items-center font-bold text-gray-800 text-lg min-w-[200px] justify-center capitalize">
+              <Calendar className="w-5 h-5 mr-2 text-indigo-500" />
+              {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
+            </div>
+            <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors">
+              <ChevronRight className="w-5 h-5" />
+            </button>
           </div>
-          <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors">
-            <ChevronRight className="w-5 h-5" />
-          </button>
         </div>
       </div>
 

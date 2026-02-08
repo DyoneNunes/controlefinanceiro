@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
+import { useGroup } from '../context/GroupContext'; // Import useGroup
 import { BillForm } from './BillForm';
 import { formatCurrency } from '../utils/finance';
 import { format, parseISO } from 'date-fns';
@@ -9,6 +10,7 @@ import type { BillStatus } from '../types';
 
 export const BillList = () => {
   const { bills, markAsPaid, deleteBill } = useFinance();
+  const { groups } = useGroup(); // Use useGroup
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [filter, setFilter] = useState<BillStatus | 'all'>('all');
 
@@ -34,6 +36,11 @@ export const BillList = () => {
       }
   };
 
+  const getGroupName = (groupId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    return group ? group.name : 'N/A';
+  };
+
   return (
     <div className="space-y-6 animated-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -41,7 +48,7 @@ export const BillList = () => {
            <h2 className="text-3xl font-bold text-gray-900">Minhas Contas</h2>
            <p className="text-gray-500 mt-1">Gerencie seus pagamentos.</p>
         </div>
-        <button 
+        <button
           onClick={() => setIsFormOpen(true)}
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
         >
@@ -57,8 +64,8 @@ export const BillList = () => {
             onClick={() => setFilter(f)}
             className={clsx(
               "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition-colors",
-              filter === f 
-                ? "bg-slate-900 text-white border-slate-900 shadow-md" 
+              filter === f
+                ? "bg-slate-900 text-white border-slate-900 shadow-md"
                 : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
             )}
           >
@@ -82,6 +89,7 @@ export const BillList = () => {
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
                   <th className="px-6 py-4 text-sm font-semibold text-gray-600">Descrição</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-600">Grupo</th>
                   <th className="px-6 py-4 text-sm font-semibold text-gray-600">Vencimento</th>
                   <th className="px-6 py-4 text-sm font-semibold text-gray-600">Valor</th>
                   <th className="px-6 py-4 text-sm font-semibold text-gray-600">Status</th>
@@ -92,6 +100,7 @@ export const BillList = () => {
                 {filteredBills.map(bill => (
                   <tr key={bill.id} className="hover:bg-gray-50/50 transition-colors group">
                     <td className="px-6 py-4 font-medium text-gray-900">{bill.name}</td>
+                    <td className="px-6 py-4 text-gray-600">{getGroupName(bill.groupId)}</td>
                     <td className="px-6 py-4 text-gray-600">
                       {format(parseISO(bill.dueDate), 'dd/MM/yyyy')}
                     </td>

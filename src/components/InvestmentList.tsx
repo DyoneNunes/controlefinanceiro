@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
+import { useGroup } from '../context/GroupContext'; // Import useGroup
 import { InvestmentForm } from './InvestmentForm';
 import { formatCurrency } from '../utils/finance';
 import { calculateInvestmentReturn } from '../utils/investment';
@@ -8,7 +9,13 @@ import { Trash2, Plus, TrendingUp, Calendar } from 'lucide-react';
 
 export const InvestmentList = () => {
   const { investments, deleteInvestment } = useFinance();
+  const { groups } = useGroup(); // Use useGroup
   const [isFormOpen, setIsFormOpen] = useState(false);
+
+  const getGroupName = (groupId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    return group ? group.name : 'N/A';
+  };
 
   return (
     <div className="space-y-6 animated-fade-in">
@@ -17,7 +24,7 @@ export const InvestmentList = () => {
            <h2 className="text-3xl font-bold text-gray-900">Meus Investimentos</h2>
            <p className="text-gray-500 mt-1">Acompanhe a rentabilidade estimada das suas aplicações.</p>
         </div>
-        <button 
+        <button
           onClick={() => setIsFormOpen(true)}
           className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
         >
@@ -52,8 +59,11 @@ export const InvestmentList = () => {
                     </div>
 
                     <h3 className="text-lg font-bold text-gray-900 mb-1">{inv.name}</h3>
+                    <p className="text-sm text-gray-500 mb-1">
+                      Grupo: {getGroupName(inv.groupId)}
+                    </p>
                     <p className="text-sm text-gray-500 mb-4 flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" /> 
+                        <Calendar className="w-4 h-4 mr-1" />
                         Até {format(endDate, 'dd/MM/yyyy')} ({inv.durationMonths} meses)
                     </p>
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
+import { useGroup } from '../context/GroupContext'; // Import useGroup
 import { RandomExpenseForm } from './RandomExpenseForm';
 import { formatCurrency } from '../utils/finance';
 import { format, parseISO } from 'date-fns';
@@ -7,7 +8,13 @@ import { Trash2, Plus, Shuffle } from 'lucide-react';
 
 export const RandomExpenseList = () => {
   const { randomExpenses, deleteRandomExpense } = useFinance();
+  const { groups } = useGroup(); // Use useGroup
   const [isFormOpen, setIsFormOpen] = useState(false);
+
+  const getGroupName = (groupId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    return group ? group.name : 'N/A';
+  };
 
   return (
     <div className="space-y-6 animated-fade-in">
@@ -16,7 +23,7 @@ export const RandomExpenseList = () => {
            <h2 className="text-3xl font-bold text-gray-900">Gastos Aleatórios</h2>
            <p className="text-gray-500 mt-1">Gerencie seus gastos diversos.</p>
         </div>
-        <button 
+        <button
           onClick={() => setIsFormOpen(true)}
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
         >
@@ -40,6 +47,7 @@ export const RandomExpenseList = () => {
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
                   <th className="px-6 py-4 text-sm font-semibold text-gray-600">Descrição</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-600">Grupo</th>
                   <th className="px-6 py-4 text-sm font-semibold text-gray-600">Data</th>
                   <th className="px-6 py-4 text-sm font-semibold text-gray-600">Valor</th>
                   <th className="px-6 py-4 text-sm font-semibold text-right">Ações</th>
@@ -49,6 +57,7 @@ export const RandomExpenseList = () => {
                 {randomExpenses.map(expense => (
                   <tr key={expense.id} className="hover:bg-gray-50/50 transition-colors group">
                     <td className="px-6 py-4 font-medium text-gray-900">{expense.name}</td>
+                    <td className="px-6 py-4 text-gray-600">{getGroupName(expense.groupId)}</td>
                     <td className="px-6 py-4 text-gray-600">
                       {format(parseISO(expense.date), 'dd/MM/yyyy')}
                     </td>

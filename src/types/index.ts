@@ -7,6 +7,7 @@ export interface Bill {
   dueDate: string; // ISO Date String
   status: BillStatus;
   paidDate?: string | null; // ISO Date String
+  groupId: string;
 }
 
 export interface Income {
@@ -14,6 +15,7 @@ export interface Income {
   description: string;
   value: number;
   date: string; // ISO Date String
+  groupId: string;
 }
 
 export interface Investment {
@@ -23,6 +25,7 @@ export interface Investment {
   cdiPercent: number;
   startDate: string; // ISO Date String
   durationMonths: number;
+  groupId: string;
 }
 
 export interface RandomExpense {
@@ -32,6 +35,7 @@ export interface RandomExpense {
   date: string; // ISO Date String
   status: BillStatus;
   paidDate?: string | null;
+  groupId: string;
 }
 
 export interface DashboardStats {

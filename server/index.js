@@ -225,6 +225,72 @@ app.post('/api/groups/:id/invite', authenticateToken, requireGroupAccess, async 
   }
 });
 
+// GET a specific group by ID
+app.get('/api/groups/:id', authenticateToken, requireGroupAccess, async (req, res) => {
+  try {
+    const { id } = req.params;
+    // requireGroupAccess already ensures req.group.id is valid and user is a member
+    const { rows } = await pool.query('SELECT id, name, created_at FROM finance_groups WHERE id = $1', [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update a group by ID
+app.put('/api/groups/:id', authenticateToken, requireGroupAccess, async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+  
+  if (!name) {
+    return res.status(400).json({ error: 'Group name is required' });
+  }
+
+  // Ensure only admins can update the group name
+  if (req.group.role !== 'admin') {
+    return res.status(403).json({ error: 'Only admins can update group details' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      'UPDATE finance_groups SET name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, name, created_at, updated_at',
+      [name, id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Group not found or not authorized to update' });
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE a group by ID
+app.delete('/api/groups/:id', authenticateToken, requireGroupAccess, async (req, res) => {
+  const { id } = req.params;
+
+  // Ensure only admins can delete the group
+  if (req.group.role !== 'admin') {
+    return res.status(403).json({ error: 'Only admins can delete a group' });
+  }
+
+  try {
+    const { rowCount } = await pool.query('DELETE FROM finance_groups WHERE id = $1', [id]);
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'Group not found or not authorized to delete' });
+    }
+    res.json({ message: 'Group deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- FINANCIAL RESOURCES (Scoped by Group) ---
 
 // Bills

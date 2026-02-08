@@ -12,6 +12,8 @@ interface GroupContextType {
   currentGroup: Group | null;
   selectGroup: (groupId: string) => void;
   createGroup: (name: string) => Promise<void>;
+  updateGroup: (groupId: string, name: string) => Promise<void>; // Added
+  deleteGroup: (groupId: string) => Promise<void>; // Added
   inviteUser: (username: string) => Promise<void>;
   refreshGroups: () => Promise<void>;
   loading: boolean;
@@ -112,16 +114,64 @@ export const GroupProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     } catch (e) {
       console.error(e);
-      throw e;
-    }
-  };
-
-  return (
-    <GroupContext.Provider value={{ 
-      groups, currentGroup, selectGroup, 
-      createGroup, inviteUser, refreshGroups: fetchGroups, loading 
-    }}>
-      {children}
-    </GroupContext.Provider>
-  );
-};
+            throw e;
+          }
+        };
+      
+        const updateGroup = async (groupId: string, name: string) => {
+          if (!token) return;
+          try {
+            const res = await fetch(`${API_URL}/groups/${groupId}`, {
+              method: 'PUT',
+              headers: {
+                ...getAuthHeaders(),
+                'X-Group-ID': groupId // Must send the group ID being updated
+              },
+              body: JSON.stringify({ name })
+            });
+            if (res.ok) {
+              await fetchGroups(); // Refresh list to get updated name
+            } else {
+              const err = await res.json();
+              throw new Error(err.error || 'Failed to update group');
+            }
+          } catch (e) {
+            console.error(e);
+            throw e;
+          }
+        };
+      
+        const deleteGroup = async (groupId: string) => {
+          if (!token) return;
+          try {
+            const res = await fetch(`${API_URL}/groups/${groupId}`, {
+              method: 'DELETE',
+              headers: {
+                ...getAuthHeaders(),
+                'X-Group-ID': groupId // Must send the group ID being deleted
+              },
+            });
+            if (res.ok) {
+              await fetchGroups(); // Refresh list after deletion
+              if (currentGroup?.id === groupId) {
+                setCurrentGroup(null); // Clear current group if it was deleted
+              }
+            } else {
+              const err = await res.json();
+              throw new Error(err.error || 'Failed to delete group');
+            }
+          } catch (e) {
+            console.error(e);
+            throw e;
+          }
+        };
+      
+        return (
+          <GroupContext.Provider value={{
+            groups, currentGroup, selectGroup,
+            createGroup, updateGroup, deleteGroup, inviteUser, refreshGroups: fetchGroups, loading
+          }}>
+            {children}
+          </GroupContext.Provider>
+        );
+      };

@@ -11,17 +11,19 @@ interface FinanceContextType {
   investments: Investment[];
   randomExpenses: RandomExpense[];
   stats: DashboardStats;
-  addBill: (data: Omit<Bill, 'id' | 'status'>) => Promise<void>;
+  addBill: (data: Omit<Bill, 'id' | 'status'> & { groupId: string }) => Promise<void>;
   markAsPaid: (id: string) => Promise<void>;
   deleteBill: (id: string) => Promise<void>;
   refreshBills: () => void;
-  addIncome: (data: Omit<Income, 'id'>) => Promise<void>;
+  addIncome: (data: Omit<Income, 'id'> & { groupId: string }) => Promise<void>;
   deleteIncome: (id: string) => Promise<void>;
-  addInvestment: (data: Omit<Investment, 'id'>) => Promise<void>;
+  addInvestment: (data: Omit<Investment, 'id'> & { groupId: string }) => Promise<void>;
   deleteInvestment: (id: string) => Promise<void>;
-  addRandomExpense: (data: Omit<RandomExpense, 'id' | 'status'>) => Promise<void>;
+  addRandomExpense: (data: Omit<RandomExpense, 'id' | 'status'> & { groupId: string }) => Promise<void>;
   deleteRandomExpense: (id: string) => Promise<void>;
   markRandomExpenseAsPaid: (id: string) => Promise<void>;
+  loading: boolean; // Added loading state
+  error: string | null; // Added error state
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -42,6 +44,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [randomExpenses, setRandomExpenses] = useState<RandomExpense[]>([]);
+  const [loading, setLoading] = useState(false); // New loading state
+  const [error, setError] = useState<string | null>(null); // New error state
 
   const [stats, setStats] = useState<DashboardStats>({
     paidTotal: 0,
@@ -69,6 +73,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const fetchData = async () => {
     if (!isAuthenticated || !currentGroup) return;
     
+    setLoading(true); // Set loading true when fetching data
+    setError(null); // Clear previous errors
     try {
       const headers = getHeaders();
       const [billsRes, incomesRes, investmentsRes, randomExpensesRes] = await Promise.all([
@@ -98,8 +104,11 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
          setRandomExpenses(processedRd);
       }
 
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
+    } catch (err: any) {
+      console.error('Failed to fetch data:', err);
+      setError(err.message || 'Failed to fetch financial data.'); // Set error state
+    } finally {
+      setLoading(false); // Set loading false after fetching
     }
   };
 
@@ -162,41 +171,62 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [bills, incomes, investments, randomExpenses]);
 
   // Bills Actions
-  const addBill = async (data: Omit<Bill, 'id' | 'status'>) => {
+  const addBill = async (data: Omit<Bill, 'id' | 'status'> & { groupId: string }) => {
+    setLoading(true); setError(null);
     try {
       const res = await fetch(`${API_URL}/bills`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ ...data, status: 'pending' })
+        body: JSON.stringify({ ...data, status: 'pending', group_id: data.groupId }) // Pass group_id
       });
-      if (res.ok) fetchData();
-    } catch (e) {
-      console.error(e);
-    }
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to add bill.');
+      }
+      fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+      throw err; // Re-throw to allow component to handle
+    } finally { setLoading(false); }
   };
 
   const markAsPaid = async (id: string) => {
+    setLoading(true); setError(null);
     try {
       const res = await fetch(`${API_URL}/bills/${id}/pay`, {
         method: 'PATCH',
         headers: getHeaders()
       });
-      if (res.ok) fetchData();
-    } catch (e) {
-      console.error(e);
-    }
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to mark bill as paid.');
+      }
+      fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+      throw err;
+    } finally { setLoading(false); }
   };
   
   const deleteBill = async (id: string) => {
+    setLoading(true); setError(null);
     try {
       const res = await fetch(`${API_URL}/bills/${id}`, { 
         method: 'DELETE',
         headers: getHeaders()
       });
-      if (res.ok) fetchData();
-    } catch (e) {
-      console.error(e);
-    }
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to delete bill.');
+      }
+      fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+      throw err;
+    } finally { setLoading(false); }
   };
   
   const refreshBills = () => {
@@ -204,79 +234,142 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   // Incomes Actions
-  const addIncome = async (data: Omit<Income, 'id'>) => {
+  const addIncome = async (data: Omit<Income, 'id'> & { groupId: string }) => {
+    setLoading(true); setError(null);
     try {
         const res = await fetch(`${API_URL}/incomes`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify(data)
+            body: JSON.stringify({ ...data, group_id: data.groupId }) // Pass group_id
         });
-        if (res.ok) fetchData();
-    } catch (e) { console.error(e); }
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Failed to add income.');
+        }
+        fetchData();
+    } catch (err: any) { 
+      console.error(err); 
+      setError(err.message);
+      throw err;
+    } finally { setLoading(false); }
   };
 
   const deleteIncome = async (id: string) => {
+    setLoading(true); setError(null);
      try {
         const res = await fetch(`${API_URL}/incomes/${id}`, { 
             method: 'DELETE',
             headers: getHeaders()
         });
-        if (res.ok) fetchData();
-    } catch (e) { console.error(e); }
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Failed to delete income.');
+        }
+        fetchData();
+    } catch (err: any) { 
+      console.error(err); 
+      setError(err.message);
+      throw err;
+    } finally { setLoading(false); }
   };
 
   // Investments Actions
-  const addInvestment = async (data: Omit<Investment, 'id'>) => {
+  const addInvestment = async (data: Omit<Investment, 'id'> & { groupId: string }) => {
+    setLoading(true); setError(null);
     try {
         const res = await fetch(`${API_URL}/investments`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify(data)
+            body: JSON.stringify({ ...data, group_id: data.groupId }) // Pass group_id
         });
-        if (res.ok) fetchData();
-    } catch (e) { console.error(e); }
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Failed to add investment.');
+        }
+        fetchData();
+    } catch (err: any) { 
+      console.error(err); 
+      setError(err.message);
+      throw err;
+    } finally { setLoading(false); }
   };
 
   const deleteInvestment = async (id: string) => {
+    setLoading(true); setError(null);
       try {
         const res = await fetch(`${API_URL}/investments/${id}`, { 
             method: 'DELETE',
             headers: getHeaders()
         });
-        if (res.ok) fetchData();
-    } catch (e) { console.error(e); }
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Failed to delete investment.');
+        }
+        fetchData();
+    } catch (err: any) { 
+      console.error(err); 
+      setError(err.message);
+      throw err;
+    } finally { setLoading(false); }
   };
 
   // Random Expenses Actions
-  const addRandomExpense = async (data: Omit<RandomExpense, 'id' | 'status'>) => {
+  const addRandomExpense = async (data: Omit<RandomExpense, 'id' | 'status'> & { groupId: string }) => {
+    setLoading(true); setError(null);
     try {
         const res = await fetch(`${API_URL}/random-expenses`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify(data)
+            body: JSON.stringify({ ...data, group_id: data.groupId }) // Pass group_id
         });
-        if (res.ok) fetchData();
-    } catch (e) { console.error(e); }
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Failed to add random expense.');
+        }
+        fetchData();
+    } catch (err: any) { 
+      console.error(err); 
+      setError(err.message);
+      throw err;
+    } finally { setLoading(false); }
   };
 
   const deleteRandomExpense = async (id: string) => {
+    setLoading(true); setError(null);
       try {
         const res = await fetch(`${API_URL}/random-expenses/${id}`, { 
             method: 'DELETE',
             headers: getHeaders()
         });
-        if (res.ok) fetchData();
-    } catch (e) { console.error(e); }
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Failed to delete random expense.');
+        }
+        fetchData();
+    } catch (err: any) { 
+      console.error(err); 
+      setError(err.message);
+      throw err;
+    } finally { setLoading(false); }
   };
 
   const markRandomExpenseAsPaid = async (id: string) => {
+    setLoading(true); setError(null);
     try {
       const res = await fetch(`${API_URL}/random-expenses/${id}/pay`, {
         method: 'PATCH',
         headers: getHeaders()
       });
-      if (res.ok) fetchData();
-    } catch (e) { console.error(e); }
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to mark random expense as paid.');
+      }
+      fetchData();
+    } catch (err: any) { 
+      console.error(err); 
+      setError(err.message);
+      throw err;
+    } finally { setLoading(false); }
   };
 
   return (
@@ -285,7 +378,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       addBill, markAsPaid, deleteBill, refreshBills, 
       addIncome, deleteIncome,
       addInvestment, deleteInvestment,
-      addRandomExpense, deleteRandomExpense, markRandomExpenseAsPaid
+      addRandomExpense, deleteRandomExpense, markRandomExpenseAsPaid,
+      loading, error // Exposed loading and error
     }}>
       {children}
     </FinanceContext.Provider>
