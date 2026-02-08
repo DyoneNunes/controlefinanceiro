@@ -23,4 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 
+# Security and Environment
 .env
+.env.*
+!.env.example
+*.bak
+*.tmp
+debug_*.js
+debug_*.cjs

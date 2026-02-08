@@ -3,8 +3,14 @@ FROM node:18-alpine as build
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+# Força uma instalação limpa das dependências de build (Tailwind/PostCSS)
+RUN npm install
 
+# Argumento de build para a URL da API
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
+# Copia o código do frontend (isso vai ignorar o que estiver no .dockerignore)
 COPY . .
 RUN npm run build
 

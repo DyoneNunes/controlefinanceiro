@@ -25,6 +25,15 @@ export interface Investment {
   durationMonths: number;
 }
 
+export interface RandomExpense {
+  id: string;
+  name: string;
+  value: number;
+  date: string; // ISO Date String
+  status: BillStatus;
+  paidDate?: string | null;
+}
+
 export interface DashboardStats {
   paidTotal: number;
   incomeTotal: number;
@@ -34,4 +43,7 @@ export interface DashboardStats {
   pendingCount: number;
   overdueCount: number;
   paidCount: number;
+  pendingTotal: number;
+  overdueTotal: number;
+  randomExpenseTotal: number;
 }

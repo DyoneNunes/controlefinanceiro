@@ -1,8 +1,12 @@
 services:
   frontend:
-    build: .
+    build:
+      context: .
+      args:
+        - VITE_API_URL=http://192.168.100.4:3000/api
     ports:
-      - "80:80"
+      - "5173:80"
+    restart: always
     depends_on:
       - backend
 
@@ -10,11 +14,24 @@ services:
     build: ./server
     ports:
       - "3000:3000"
+    restart: always
     env_file:
       - .env
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_URL=redis://redis:6379
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
+
+  redis:
+    image: redis:alpine
+    container_name: finance_redis
+    ports:
+      - "6379:6379"
+    restart: always
 
   db:
     image: postgres:16-alpine

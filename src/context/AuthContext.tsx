@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { verifyPassword, generateToken, verifyToken } from '../utils/security';
+import { getToken, setToken, removeToken } from '../utils/security';
 
 interface User {
   username: string;
@@ -7,6 +7,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  token: string | null;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -25,18 +26,29 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setTokenState] = useState<string | null>(getToken());
   const [isLoading, setIsLoading] = useState(true);
 
   // Check for existing token on mount
   useEffect(() => {
     const checkSession = async () => {
-      const token = localStorage.getItem('finance_token');
-      if (token) {
-        const payload = await verifyToken(token);
-        if (payload) {
-          setUser({ username: payload.username });
-        } else {
-          localStorage.removeItem('finance_token');
+      const currentToken = getToken();
+      if (currentToken) {
+        try {
+          const res = await fetch(`${API_URL}/auth/validate`, {
+            headers: { 'Authorization': `Bearer ${currentToken}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setUser({ username: data.username });
+            setTokenState(currentToken);
+          } else {
+            removeToken();
+            setTokenState(null);
+          }
+        } catch (e) {
+          removeToken();
+          setTokenState(null);
         }
       }
       setIsLoading(false);
@@ -46,24 +58,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      // 1. Get User Hash from API
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }) // Sending password just to identify flow, but API returns hash
+        body: JSON.stringify({ username, password })
       });
 
       if (!response.ok) return false;
 
       const data = await response.json();
       
-      // 2. Verify Hash Client-Side (Legacy Security flow requested)
-      const isValid = await verifyPassword(password, data.hash);
-      
-      if (isValid) {
-        const token = await generateToken(username);
-        localStorage.setItem('finance_token', token);
-        setUser({ username });
+      if (data.token) {
+        setToken(data.token);
+        setTokenState(data.token);
+        setUser({ username: data.username });
         return true;
       }
       
@@ -76,11 +84,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('finance_token');
+    setTokenState(null);
+    removeToken();
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!user, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
