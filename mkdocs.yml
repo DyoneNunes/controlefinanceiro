@@ -1,0 +1,65 @@
+site_name: Controle Financeiro Documentation
+site_url: https://example.com/
+repo_url: https://github.com/DyoneNunes/controlefinanceiro
+repo_name: DyoneNunes/controlefinanceiro
+edit_uri: edit/main/docs/mkdocs/
+
+theme:
+  name: material
+  custom_dir: docs/overrides # If needed for custom styling/templates
+  palette:
+    scheme: default
+    primary: deep purple
+    accent: light blue
+  font:
+    text: Roboto
+    code: Roboto Mono
+  icon:
+    logo: material/currency-usd
+  features:
+    - navigation.tabs
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Project Overview: project_overview.md
+  - Architecture: architecture.md
+  - Core Features:
+    - Login & Auth: core_features/login_auth.md
+    - Group Management: core_features/group_management.md
+    - Bills: core_features/bills.md
+    - Incomes: core_features/incomes.md
+    - Investments: core_features/investments.md
+    - Random Expenses: core_features/random_expenses.md
+    - AI Advisor: core_features/ai_advisor.md
+  - Database Schema: database_schema.md
+  - API Endpoints: api_endpoints.md
+  - Frontend Components: frontend_components.md
+  - Contexts: contexts.md
+  - Utilities: utilities.md
+  - Setup & Installation: setup_installation.md
+  - Security Review: security_review.md
+  - Reports:
+    - Update Plan v1.0.1: atualizacaov101.md
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+      linenums: true
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.tasklist:
+      custom_checkbox: true
