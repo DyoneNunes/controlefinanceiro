@@ -41,7 +41,7 @@ redisClient.on('error', (err) => console.error('Redis Client Error', err));
 app.use(helmet({
   contentSecurityPolicy: false 
 }));
-app.use(cors());
+app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(express.json());
 
 // Database Connection
@@ -146,6 +146,7 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
     if (result.rows.length === 0) {
+      console.warn(`Login attempt for non-existent user: ${username}`);
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
     
@@ -153,6 +154,7 @@ app.post('/api/auth/login', async (req, res) => {
     const passwordMatch = await bcrypt.compare(password, user.password_hash);
     
     if (!passwordMatch) {
+      console.warn(`Login attempt with incorrect password for user: ${username}`);
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
@@ -487,9 +489,20 @@ app.post('/api/advisor', authenticateToken, requireGroupAccess, async (req, res)
     
     const adviceJson = JSON.parse(text);
 
+    // --- SAVE TO DB HISTORY ---
+    try {
+        await pool.query(
+            `INSERT INTO ai_advisor_history (group_id, user_id, summary_input, advice_output)
+             VALUES ($1, $2, $3, $4)`,
+            [req.group.id, req.user.id, dataSummary, adviceJson]
+        );
+        console.log('AI advice saved to history.');
+    } catch (dbErr) {
+        console.error('Error saving AI advice to history:', dbErr);
+        // Do not block the response even if history saving fails
+    }
+
     // Save to Cache (Expire in 24 hours - 86400 seconds)
-    // Even if data doesn't change, we might want to refresh advice eventually, 
-    // but the main trigger is the dataHash changing.
     try {
         await redisClient.set(cacheKey, JSON.stringify(adviceJson), { EX: 86400 });
     } catch (cacheWriteErr) {
@@ -501,6 +514,49 @@ app.post('/api/advisor', authenticateToken, requireGroupAccess, async (req, res)
   } catch (err) {
     console.error('AI Error:', err);
     res.status(500).json({ error: 'Falha ao gerar consultoria: ' + err.message });
+  }
+});
+
+// New Endpoint 8. AI Advisor History List
+app.get('/api/advisor/history', authenticateToken, requireGroupAccess, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, generated_at, (advice_output->>'diagnostico') as diagnostico_summary
+       FROM ai_advisor_history
+       WHERE group_id = $1 AND user_id = $2
+       ORDER BY generated_at DESC`,
+      [req.group.id, req.user.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching AI advisor history list:', err);
+    res.status(500).json({ error: 'Failed to fetch AI advisor history list' });
+  }
+});
+
+// New Endpoint 9. Specific AI Advisor History Entry
+app.get('/api/advisor/history/:id', authenticateToken, requireGroupAccess, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid history ID format' });
+    }
+
+    const { rows } = await pool.query(
+      `SELECT advice_output
+       FROM ai_advisor_history
+       WHERE id = $1 AND group_id = $2 AND user_id = $3`,
+      [id, req.group.id, req.user.id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'AI advisor history entry not found' });
+    }
+
+    res.json(rows[0].advice_output);
+  } catch (err) {
+    console.error('Error fetching specific AI advisor history entry:', err);
+    res.status(500).json({ error: 'Failed to fetch AI advisor history entry' });
   }
 });
 

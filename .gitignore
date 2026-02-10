@@ -24,8 +24,7 @@ dist-ssr
 *.sw?
 
 # Security and Environment
-.env
-.env.*
+
 !.env.example
 *.bak
 *.tmp
