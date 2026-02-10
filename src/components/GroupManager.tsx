@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useGroup, Group } from '../context/GroupContext';
+import { useGroup } from '../context/GroupContext';
 
 const GroupManager: React.FC = () => {
   const { groups, currentGroup, selectGroup, createGroup, updateGroup, deleteGroup, inviteUser, loading } = useGroup();
