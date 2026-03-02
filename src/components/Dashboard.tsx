@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { useFinance } from '../context/FinanceContext';
-import { useGroup } from '../context/GroupContext'; // Import useGroup
 import { formatCurrency } from '../utils/finance';
 import { calculateInvestmentReturn } from '../utils/investment';
 import { TrendingUp, AlertCircle, CheckCircle, Clock, Wallet, TrendingDown, LineChart, ArrowUpRight, PiggyBank, Shuffle, ChevronLeft, ChevronRight, Calendar, Upload } from 'lucide-react';
@@ -25,61 +24,43 @@ const StatCard = ({ title, value, icon: Icon, colorClass, bgClass, subValue, lab
 
 export const Dashboard = () => {
   const { bills, incomes, randomExpenses, investments } = useFinance();
-  const { groups, currentGroup, selectGroup } = useGroup(); // Use useGroup
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showImport, setShowImport] = useState(false);
-
-  console.log('Dashboard Rendered. Date:', currentDate);
-  console.log('Incomes count:', incomes.length);
 
   const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
   const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
 
-  // --- FILTERS & CALCULATIONS ---
-
   const monthlyStats = useMemo(() => {
-    // Helper to check date match
     const isCurrentMonth = (dateStr: string) => isSameMonth(parseISO(dateStr), currentDate);
     
-    // Incomes
     const incomeTotal = incomes
       .filter(i => isCurrentMonth(i.date))
       .reduce((sum, i) => sum + Number(i.value), 0);
 
-    // Bills Paid (Cash Flow: Based on Payment Date)
     const billsPaid = bills.filter(b => {
       if (b.status !== 'paid') return false;
-      // If paidDate exists, use it. Otherwise fallback to dueDate for legacy data compatibility
       const effectiveDate = b.paidDate ? b.paidDate : b.dueDate;
       return isCurrentMonth(effectiveDate);
     });
 
-    // Bills Pending (Competence: Due in this month)
     const billsPending = bills.filter(b => 
       b.status === 'pending' && isCurrentMonth(b.dueDate)
     );
 
-    // Bills Overdue (Accumulated Debt: All overdue bills regardless of date)
-    // We show all overdue bills because they are current liabilities that need payment
     const billsOverdue = bills.filter(b => b.status === 'overdue');
 
     const paidTotal = billsPaid.reduce((sum, b) => sum + Number(b.value), 0);
     const pendingTotal = billsPending.reduce((sum, b) => sum + Number(b.value), 0);
     const overdueTotal = billsOverdue.reduce((sum, b) => sum + Number(b.value), 0);
 
-    // Random Expenses
     const randomTotal = randomExpenses
       .filter(r => isCurrentMonth(r.date))
       .reduce((sum, r) => sum + Number(r.value), 0);
 
-    // Investments (Made this month)
     const investedTotal = investments
       .filter(i => isCurrentMonth(i.startDate))
       .reduce((sum, i) => sum + Number(i.initialAmount), 0);
 
-    // Balance Calculation: Cash Flow based (Option B - Real Bank Account Reality)
-    // Income - (All Paid Bills in Month + All Random Expenses in Month)
-    // We exclude investments because they are asset transfers, not expenses.
     const totalCashOutflows = paidTotal + randomTotal;
     const balance = incomeTotal - totalCashOutflows;
 
@@ -115,7 +96,6 @@ export const Dashboard = () => {
     return { incomeTotal, expenseTotal, investedTotal, balance: incomeTotal - expenseTotal - investedTotal };
   }, [currentDate, bills, incomes, randomExpenses, investments]);
 
-  // Global Asset Stats (All Time)
   const totalAssets = useMemo(() => {
       const invested = investments.reduce((sum, i) => sum + Number(i.initialAmount), 0);
       const yieldVal = investments.reduce((sum, inv) => {
@@ -128,7 +108,6 @@ export const Dashboard = () => {
   return (
     <div className="space-y-8 animated-fade-in pb-10">
       
-      {/* HEADER: DATE SELECTOR AND GROUP SELECTOR */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold text-gray-900">Visão Mensal</h2>
@@ -143,18 +122,6 @@ export const Dashboard = () => {
             <Upload className="w-4 h-4" />
             Importar Extrato
           </button>
-
-          {groups.length > 0 && (
-            <select
-              className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white shadow-sm"
-              value={currentGroup?.id || ''}
-              onChange={(e) => selectGroup(e.target.value)}
-            >
-              {groups.map((group) => (
-                <option key={group.id} value={group.id}>{group.name}</option>
-              ))}
-            </select>
-          )}
 
           <div className="flex items-center bg-white rounded-xl shadow-sm border border-gray-200 p-1">
             <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors">
@@ -171,7 +138,6 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* MONTHLY STATS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
          <StatCard
           title="Saldo do Mês"
@@ -220,7 +186,6 @@ export const Dashboard = () => {
         />
       </div>
 
-      {/* YEARLY SUMMARY SECTION */}
       <div className="border-t border-gray-200 pt-8">
         <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
           <Calendar className="w-5 h-5 mr-2 text-gray-500" />
@@ -246,7 +211,6 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* Bill Status Section */}
       <div>
         <h3 className="text-xl font-bold text-gray-900 mb-6">Status das Contas (Mês)</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -274,7 +238,6 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* Total Assets Banner (All Time) */}
       <div className="bg-gradient-to-r from-purple-900 to-indigo-900 rounded-2xl p-6 text-white relative overflow-hidden">
          <div className="relative z-10 flex items-center justify-between">
             <div>

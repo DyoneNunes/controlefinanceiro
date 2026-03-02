@@ -1,13 +1,13 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Receipt, TrendingUp, LineChart, LogOut, User, Shuffle, Bot, Users, Plus, UserPlus } from 'lucide-react';
+import { LayoutDashboard, Receipt, TrendingUp, LineChart, LogOut, User, Shuffle, Bot, Plus, UserPlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGroup } from '../context/GroupContext';
 import clsx from 'clsx';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { logout, user } = useAuth();
-  const { groups, currentGroup, selectGroup, createGroup, inviteUser } = useGroup();
+  const { currentGroup, createGroup, inviteUser } = useGroup();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -43,31 +43,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           </h1>
         </div>
 
-        {/* GROUP SELECTOR - Only show if more than 1 group exists */}
-        {groups.length > 1 ? (
-          <div className="px-6 pb-2">
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Carteira Ativa</label>
-            <div className="relative">
-              <select 
-                  value={currentGroup?.id || ''} 
-                  onChange={(e) => selectGroup(e.target.value)}
-                  className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-blue-500 text-sm font-medium"
-              >
-                {groups.map(g => (
-                  <option key={g.id} value={g.id}>{g.name}</option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                  <Users className="w-4 h-4" />
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="px-6 pb-2">
-             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Finanças</p>
-             <p className="text-sm font-bold text-gray-700 truncate">{currentGroup?.name || 'Pessoal'}</p>
-          </div>
-        )}
+        {/* ALWAYS SHOW CURRENT WALLET NAME - Selection removed */}
+        <div className="px-6 pb-2">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Finanças</p>
+            <p className="text-sm font-bold text-gray-700 truncate">{currentGroup?.name || 'Carregando...'}</p>
+        </div>
 
         <div className="px-6 pb-6 pt-4">
            <div className="bg-gray-50 rounded-xl p-3 flex items-center space-x-3 border border-gray-100">

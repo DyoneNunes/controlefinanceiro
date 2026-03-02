@@ -142,6 +142,26 @@ app.post('/api/auth/login', async (req, res) => {
     const passwordMatch = await bcrypt.compare(password, user.password_hash);
     if (!passwordMatch) return res.status(401).json({ error: 'Credenciais inválidas' });
     const token = jwt.sign({ username: user.username, id: user.id }, JWT_SECRET, { expiresIn: '8h' });
+
+    // --- AUTO-CREATE DEFAULT GROUP IF NONE EXISTS ---
+    const groupCheck = await pool.query('SELECT group_id FROM group_members WHERE user_id = $1 LIMIT 1', [user.id]);
+    if (groupCheck.rows.length === 0) {
+      console.log(`Auto-creating default group for user ${user.username}`);
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const groupRes = await client.query('INSERT INTO finance_groups (name) VALUES ($1) RETURNING id', ['Minha Carteira']);
+        const newGroupId = groupRes.rows[0].id;
+        await client.query('INSERT INTO group_members (group_id, user_id, role) VALUES ($1, $2, $3)', [newGroupId, user.id, 'admin']);
+        await client.query('COMMIT');
+      } catch (e) {
+        await client.query('ROLLBACK');
+        console.error('Failed to auto-create group:', e);
+      } finally {
+        client.release();
+      }
+    }
+
     res.json({ username: user.username, token: token, success: true });
   } catch (err) {
     res.status(500).json({ error: 'Erro interno' });
@@ -285,12 +305,51 @@ app.post('/api/advisor', authenticateToken, requireGroupAccess, async (req, res)
     ]);
     const formatMoney = (val) => parseFloat(val).toFixed(2);
     const dataSummary = `DADOS: Rendas: ${incomes.rows.map(i => i.description + ': R$ ' + formatMoney(i.value)).join(', ') || 'Nenhuma'}. Contas: ${bills.rows.map(b => b.name + ': R$ ' + formatMoney(b.value)).join(', ') || 'Nenhuma'}. Gastos Variáveis: ${random.rows.map(r => r.name + ': R$ ' + formatMoney(r.value)).join(', ') || 'Nenhum'}.`;
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest", generationConfig: { response_mime_type: "application/json" } });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig: { response_mime_type: "application/json" } });
     const prompt = `Analise em PT-BR e retorne JSON: {"diagnostico": "...", "pontos_atencao": ["..."], "estrategia": [{"titulo": "...", "detalhe": "..."}], "recomendacao_investimentos": "..."}. Dados: ${dataSummary}`;
     const result = await model.generateContent(prompt);
     const text = (await result.response).text();
-    res.json({ advice: JSON.parse(text) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    const parsedAdvice = JSON.parse(text);
+
+    // Save to history
+    await pool.query(
+      'INSERT INTO ai_advisor_history (group_id, user_id, summary_input, advice_output) VALUES ($1, $2, $3, $4)',
+      [req.group.id, req.user.id, dataSummary, JSON.stringify(parsedAdvice)]
+    );
+
+    res.json({ advice: parsedAdvice });
+  } catch (err) { 
+    console.error('Advisor error:', err);
+    res.status(500).json({ error: err.message }); 
+  }
+});
+
+app.get('/api/advisor/history', authenticateToken, requireGroupAccess, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, generated_at, advice_output->>'diagnostico' as diagnostico_summary 
+       FROM ai_advisor_history 
+       WHERE group_id = $1 
+       ORDER BY generated_at DESC`,
+      [req.group.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/advisor/history/:id', authenticateToken, requireGroupAccess, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT advice_output FROM ai_advisor_history WHERE id = $1 AND group_id = $2',
+      [req.params.id, req.group.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Histórico não encontrado' });
+    res.json(rows[0].advice_output);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Unified Import (OFX / PDF)
@@ -310,8 +369,7 @@ app.post('/api/import/ofx', authenticateToken, upload.single('file'), async (req
         const model = genAI.getGenerativeModel({ 
           model: "gemini-2.5-flash",
           generationConfig: { response_mime_type: "application/json" }
-        });
-        const prompt = `
+        });        const prompt = `
           Atue como um parser de extratos bancários. Analise o texto bruto abaixo extraído de um PDF e identifique as transações individuais.
           
           Regras de Saída:
