@@ -24,6 +24,7 @@ interface FinanceContextType {
   markRandomExpenseAsPaid: (id: string) => Promise<void>;
   loading: boolean; // Added loading state
   error: string | null; // Added error state
+  refreshData: () => Promise<void>;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -379,7 +380,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       addIncome, deleteIncome,
       addInvestment, deleteInvestment,
       addRandomExpense, deleteRandomExpense, markRandomExpenseAsPaid,
-      loading, error // Exposed loading and error
+      loading, error, refreshData: fetchData // Exposed loading and error
     }}>
       {children}
     </FinanceContext.Provider>

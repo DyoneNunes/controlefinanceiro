@@ -3,8 +3,9 @@ import { useFinance } from '../context/FinanceContext';
 import { useGroup } from '../context/GroupContext'; // Import useGroup
 import { formatCurrency } from '../utils/finance';
 import { calculateInvestmentReturn } from '../utils/investment';
-import { TrendingUp, AlertCircle, CheckCircle, Clock, Wallet, TrendingDown, LineChart, ArrowUpRight, PiggyBank, Shuffle, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { TrendingUp, AlertCircle, CheckCircle, Clock, Wallet, TrendingDown, LineChart, ArrowUpRight, PiggyBank, Shuffle, ChevronLeft, ChevronRight, Calendar, Upload } from 'lucide-react';
 import { ChartsSection } from './ChartsSection';
+import { BankImport } from './BankImport';
 import { format, addMonths, subMonths, isSameMonth, isSameYear, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -26,6 +27,7 @@ export const Dashboard = () => {
   const { bills, incomes, randomExpenses, investments } = useFinance();
   const { groups, currentGroup, selectGroup } = useGroup(); // Use useGroup
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [showImport, setShowImport] = useState(false);
 
   console.log('Dashboard Rendered. Date:', currentDate);
   console.log('Incomes count:', incomes.length);
@@ -75,9 +77,11 @@ export const Dashboard = () => {
       .filter(i => isCurrentMonth(i.startDate))
       .reduce((sum, i) => sum + Number(i.initialAmount), 0);
 
-    // Balance Calculation: Cash Flow based
-    const totalOutflows = paidTotal + randomTotal + investedTotal;
-    const balance = incomeTotal - totalOutflows;
+    // Balance Calculation: Cash Flow based (Option B - Real Bank Account Reality)
+    // Income - (All Paid Bills in Month + All Random Expenses in Month)
+    // We exclude investments because they are asset transfers, not expenses.
+    const totalCashOutflows = paidTotal + randomTotal;
+    const balance = incomeTotal - totalCashOutflows;
 
     return {
       incomeTotal,
@@ -132,6 +136,14 @@ export const Dashboard = () => {
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-4">
+          <button 
+            onClick={() => setShowImport(true)}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            Importar Extrato
+          </button>
+
           {groups.length > 0 && (
             <select
               className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white shadow-sm"
@@ -279,6 +291,8 @@ export const Dashboard = () => {
       </div>
       
       <ChartsSection />
+      
+      {showImport && <BankImport onClose={() => setShowImport(false)} />}
     </div>
   );
 };

@@ -20,7 +20,7 @@ export const Login = () => {
     // Simulate network delay for better UX feeling
     await new Promise(resolve => setTimeout(resolve, 800));
 
-    const success = await login(username, password);
+    const success = await login(username.trim(), password.trim());
     
     if (success) {
       navigate('/');
