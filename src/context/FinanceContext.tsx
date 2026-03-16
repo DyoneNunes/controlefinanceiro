@@ -22,9 +22,9 @@ interface FinanceContextType {
   addRandomExpense: (data: Omit<RandomExpense, 'id' | 'status'> & { groupId: string }) => Promise<void>;
   deleteRandomExpense: (id: string) => Promise<void>;
   markRandomExpenseAsPaid: (id: string) => Promise<void>;
-  loading: boolean; // Added loading state
-  error: string | null; // Added error state
   refreshData: () => Promise<void>;
+  loading: boolean;
+  error: string | null;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -40,13 +40,13 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const { currentGroup } = useGroup();
-  
+
   const [bills, setBills] = useState<Bill[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [randomExpenses, setRandomExpenses] = useState<RandomExpense[]>([]);
-  const [loading, setLoading] = useState(false); // New loading state
-  const [error, setError] = useState<string | null>(null); // New error state
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [stats, setStats] = useState<DashboardStats>({
     paidTotal: 0,
@@ -73,9 +73,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const fetchData = async () => {
     if (!isAuthenticated || !currentGroup) return;
-    
-    setLoading(true); // Set loading true when fetching data
-    setError(null); // Clear previous errors
+
+    setLoading(true);
+    setError(null);
     try {
       const headers = getHeaders();
       const [billsRes, incomesRes, investmentsRes, randomExpensesRes] = await Promise.all([
@@ -97,19 +97,18 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (investmentsRes.ok) setInvestments(await investmentsRes.json());
       if (randomExpensesRes.ok) {
          const rdData = await randomExpensesRes.json();
-         // We can apply status calculation here too if needed, mapping date -> dueDate
          const processedRd = rdData.map((r: any) => ({
              ...r,
-             status: calculateStatus({ ...r, dueDate: r.date }) 
+             status: calculateStatus({ ...r, dueDate: r.date })
          }));
          setRandomExpenses(processedRd);
       }
 
     } catch (err: any) {
       console.error('Failed to fetch data:', err);
-      setError(err.message || 'Failed to fetch financial data.'); // Set error state
+      setError(err.message || 'Failed to fetch financial data.');
     } finally {
-      setLoading(false); // Set loading false after fetching
+      setLoading(false);
     }
   };
 
@@ -117,15 +116,13 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (isAuthenticated && currentGroup) {
       fetchData();
     } else {
-      // Clear data if no group selected (e.g. on logout or loading)
       setBills([]);
       setIncomes([]);
       setInvestments([]);
       setRandomExpenses([]);
     }
-  }, [isAuthenticated, currentGroup]); // Re-fetch when group changes
+  }, [isAuthenticated, currentGroup]);
 
-  // Update Stats whenever data changes
   useEffect(() => {
     const billStats = bills.reduce((acc, bill) => {
       const value = Number(bill.value);
@@ -140,18 +137,18 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         acc.pendingTotal += value;
       }
       return acc;
-    }, { 
-      paidTotal: 0, 
-      pendingCount: 0, 
-      overdueCount: 0, 
+    }, {
+      paidTotal: 0,
+      pendingCount: 0,
+      overdueCount: 0,
       paidCount: 0,
       pendingTotal: 0,
-      overdueTotal: 0 
+      overdueTotal: 0
     });
 
     const incomeTotal = incomes.reduce((sum, income) => sum + Number(income.value), 0);
     const investedTotal = investments.reduce((sum, inv) => sum + Number(inv.initialAmount), 0);
-    
+
     const investmentYield = investments.reduce((sum, inv) => {
       const finalAmount = calculateInvestmentReturn(inv.initialAmount, inv.cdiPercent, inv.durationMonths);
       return sum + (finalAmount - inv.initialAmount);
@@ -171,14 +168,13 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   }, [bills, incomes, investments, randomExpenses]);
 
-  // Bills Actions
   const addBill = async (data: Omit<Bill, 'id' | 'status'> & { groupId: string }) => {
     setLoading(true); setError(null);
     try {
       const res = await fetch(`${API_URL}/bills`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ ...data, status: 'pending', group_id: data.groupId }) // Pass group_id
+        body: JSON.stringify({ ...data, status: 'pending', group_id: data.groupId })
       });
       if (!res.ok) {
         const err = await res.json();
@@ -188,7 +184,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch (err: any) {
       console.error(err);
       setError(err.message);
-      throw err; // Re-throw to allow component to handle
+      throw err;
     } finally { setLoading(false); }
   };
 
@@ -210,11 +206,11 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       throw err;
     } finally { setLoading(false); }
   };
-  
+
   const deleteBill = async (id: string) => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch(`${API_URL}/bills/${id}`, { 
+      const res = await fetch(`${API_URL}/bills/${id}`, {
         method: 'DELETE',
         headers: getHeaders()
       });
@@ -229,27 +225,26 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       throw err;
     } finally { setLoading(false); }
   };
-  
+
   const refreshBills = () => {
     fetchData();
   };
 
-  // Incomes Actions
   const addIncome = async (data: Omit<Income, 'id'> & { groupId: string }) => {
     setLoading(true); setError(null);
     try {
         const res = await fetch(`${API_URL}/incomes`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify({ ...data, group_id: data.groupId }) // Pass group_id
+            body: JSON.stringify({ ...data, group_id: data.groupId })
         });
         if (!res.ok) {
           const err = await res.json();
           throw new Error(err.error || 'Failed to add income.');
         }
         fetchData();
-    } catch (err: any) { 
-      console.error(err); 
+    } catch (err: any) {
+      console.error(err);
       setError(err.message);
       throw err;
     } finally { setLoading(false); }
@@ -258,7 +253,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const deleteIncome = async (id: string) => {
     setLoading(true); setError(null);
      try {
-        const res = await fetch(`${API_URL}/incomes/${id}`, { 
+        const res = await fetch(`${API_URL}/incomes/${id}`, {
             method: 'DELETE',
             headers: getHeaders()
         });
@@ -267,29 +262,28 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           throw new Error(err.error || 'Failed to delete income.');
         }
         fetchData();
-    } catch (err: any) { 
-      console.error(err); 
+    } catch (err: any) {
+      console.error(err);
       setError(err.message);
       throw err;
     } finally { setLoading(false); }
   };
 
-  // Investments Actions
   const addInvestment = async (data: Omit<Investment, 'id'> & { groupId: string }) => {
     setLoading(true); setError(null);
     try {
         const res = await fetch(`${API_URL}/investments`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify({ ...data, group_id: data.groupId }) // Pass group_id
+            body: JSON.stringify({ ...data, group_id: data.groupId })
         });
         if (!res.ok) {
           const err = await res.json();
           throw new Error(err.error || 'Failed to add investment.');
         }
         fetchData();
-    } catch (err: any) { 
-      console.error(err); 
+    } catch (err: any) {
+      console.error(err);
       setError(err.message);
       throw err;
     } finally { setLoading(false); }
@@ -298,7 +292,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const deleteInvestment = async (id: string) => {
     setLoading(true); setError(null);
       try {
-        const res = await fetch(`${API_URL}/investments/${id}`, { 
+        const res = await fetch(`${API_URL}/investments/${id}`, {
             method: 'DELETE',
             headers: getHeaders()
         });
@@ -307,29 +301,28 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           throw new Error(err.error || 'Failed to delete investment.');
         }
         fetchData();
-    } catch (err: any) { 
-      console.error(err); 
+    } catch (err: any) {
+      console.error(err);
       setError(err.message);
       throw err;
     } finally { setLoading(false); }
   };
 
-  // Random Expenses Actions
   const addRandomExpense = async (data: Omit<RandomExpense, 'id' | 'status'> & { groupId: string }) => {
     setLoading(true); setError(null);
     try {
         const res = await fetch(`${API_URL}/random-expenses`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify({ ...data, group_id: data.groupId }) // Pass group_id
+            body: JSON.stringify({ ...data, group_id: data.groupId })
         });
         if (!res.ok) {
           const err = await res.json();
           throw new Error(err.error || 'Failed to add random expense.');
         }
         fetchData();
-    } catch (err: any) { 
-      console.error(err); 
+    } catch (err: any) {
+      console.error(err);
       setError(err.message);
       throw err;
     } finally { setLoading(false); }
@@ -338,7 +331,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const deleteRandomExpense = async (id: string) => {
     setLoading(true); setError(null);
       try {
-        const res = await fetch(`${API_URL}/random-expenses/${id}`, { 
+        const res = await fetch(`${API_URL}/random-expenses/${id}`, {
             method: 'DELETE',
             headers: getHeaders()
         });
@@ -347,8 +340,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           throw new Error(err.error || 'Failed to delete random expense.');
         }
         fetchData();
-    } catch (err: any) { 
-      console.error(err); 
+    } catch (err: any) {
+      console.error(err);
       setError(err.message);
       throw err;
     } finally { setLoading(false); }
@@ -366,21 +359,22 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         throw new Error(err.error || 'Failed to mark random expense as paid.');
       }
       fetchData();
-    } catch (err: any) { 
-      console.error(err); 
+    } catch (err: any) {
+      console.error(err);
       setError(err.message);
       throw err;
     } finally { setLoading(false); }
   };
 
   return (
-    <FinanceContext.Provider value={{ 
-      bills, incomes, investments, randomExpenses, stats, 
-      addBill, markAsPaid, deleteBill, refreshBills, 
+    <FinanceContext.Provider value={{
+      bills, incomes, investments, randomExpenses, stats,
+      addBill, markAsPaid, deleteBill, refreshBills,
       addIncome, deleteIncome,
       addInvestment, deleteInvestment,
       addRandomExpense, deleteRandomExpense, markRandomExpenseAsPaid,
-      loading, error, refreshData: fetchData // Exposed loading and error
+      refreshData: fetchData,
+      loading, error
     }}>
       {children}
     </FinanceContext.Provider>

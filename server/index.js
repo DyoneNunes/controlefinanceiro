@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet'); 
+const helmet = require('helmet');
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -9,13 +9,11 @@ const { createClient } = require('redis');
 const crypto = require('crypto');
 const multer = require('multer');
 const ofx = require('node-ofx-parser');
-// const pdf = require('pdf-parse'); 
 require('dotenv').config({ override: true });
 
 const app = express();
 const port = 3000;
 
-// Multer Setup
 const upload = multer({ storage: multer.memoryStorage() });
 
 if (!process.env.JWT_SECRET) {
@@ -43,12 +41,11 @@ redisClient.on('error', (err) => console.error('Redis Client Error', err));
 
 // Middleware
 app.use(helmet({
-  contentSecurityPolicy: false 
+  contentSecurityPolicy: false
 }));
 
-// CORS Configuration
 app.use(cors({
-  origin: true, 
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Group-ID']
@@ -131,7 +128,7 @@ app.get('/', (req, res) => { res.send('API is running.'); });
 app.post('/api/auth/login', async (req, res) => {
   let { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Usuário e senha são obrigatórios' });
-  
+
   username = username.trim().toLowerCase();
   password = password.trim();
 
@@ -304,9 +301,64 @@ app.post('/api/advisor', authenticateToken, requireGroupAccess, async (req, res)
       pool.query(`SELECT * FROM investments WHERE group_id = $1`, groupFilter)
     ]);
     const formatMoney = (val) => parseFloat(val).toFixed(2);
-    const dataSummary = `DADOS: Rendas: ${incomes.rows.map(i => i.description + ': R$ ' + formatMoney(i.value)).join(', ') || 'Nenhuma'}. Contas: ${bills.rows.map(b => b.name + ': R$ ' + formatMoney(b.value)).join(', ') || 'Nenhuma'}. Gastos Variáveis: ${random.rows.map(r => r.name + ': R$ ' + formatMoney(r.value)).join(', ') || 'Nenhum'}.`;
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig: { response_mime_type: "application/json" } });
-    const prompt = `Analise em PT-BR e retorne JSON: {"diagnostico": "...", "pontos_atencao": ["..."], "estrategia": [{"titulo": "...", "detalhe": "..."}], "recomendacao_investimentos": "..."}. Dados: ${dataSummary}`;
+
+    const dataSummary = `
+      DADOS FINANCEIROS DO USUÁRIO (Carteira Atual):
+
+      1. RENDAS MENSAIS (Entradas):
+      ${incomes.rows.map(i => `- ${i.description}: R$ ${formatMoney(i.value)}`).join('\n') || 'Nenhuma renda cadastrada.'}
+
+      2. CONTAS FIXAS (Obrigações):
+      ${bills.rows.map(b => `- ${b.name}: R$ ${formatMoney(b.value)} (Status: ${b.status}, Vencimento: ${b.due_date})`).join('\n') || 'Nenhuma conta cadastrada.'}
+
+      3. GASTOS VARIÁVEIS/ALEATÓRIOS (Últimos 30 dias):
+      ${random.rows.map(r => `- ${r.name}: R$ ${formatMoney(r.value)} em ${r.date}`).join('\n') || 'Nenhum gasto variável recente.'}
+
+      4. INVESTIMENTOS ATUAIS:
+      ${investments.rows.map(inv => `- ${inv.name}: R$ ${formatMoney(inv.initial_amount)} (${inv.cdi_percent}% do CDI)`).join('\n') || 'Nenhum investimento.'}
+    `;
+
+    // --- CACHE STRATEGY (Redis) ---
+    const dataHash = crypto.createHash('md5').update(dataSummary).digest('hex');
+    const cacheKey = `advisor:${req.group.id}:${dataHash}`;
+
+    try {
+        const cachedAdvice = await redisClient.get(cacheKey);
+        if (cachedAdvice) {
+            console.log(`⚡ Cache HIT for advisor: ${cacheKey}`);
+            return res.json({ advice: JSON.parse(cachedAdvice) });
+        }
+    } catch (cacheErr) {
+        console.error("Redis Read Error:", cacheErr);
+    }
+
+    console.log(`🐢 Cache MISS for advisor. Generating new with Gemini...`);
+
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      generationConfig: { response_mime_type: "application/json" }
+    });
+
+    const prompt = `
+      Atue como um consultor financeiro pessoal altamente qualificado. Analise os dados brutos abaixo e forneça um relatório estratégico em formato JSON.
+
+      ${dataSummary}
+
+      O JSON deve seguir EXATAMENTE esta estrutura:
+      {
+        "diagnostico": "Resumo curto da saúde financeira (Sobrando dinheiro? Endividado? Equilibrado?).",
+        "pontos_atencao": ["Ponto 1", "Ponto 2", "Ponto 3"],
+        "estrategia": [
+          { "titulo": "Ação 1", "detalhe": "Descrição detalhada" },
+          { "titulo": "Ação 2", "detalhe": "Descrição detalhada" },
+          { "titulo": "Ação 3", "detalhe": "Descrição detalhada" }
+        ],
+        "recomendacao_investimentos": "Sugestão detalhada de onde alocar recursos."
+      }
+
+      Seja encorajador mas realista. Fale em português do Brasil.
+    `;
+
     const result = await model.generateContent(prompt);
     const text = (await result.response).text();
     const parsedAdvice = JSON.parse(text);
@@ -317,19 +369,26 @@ app.post('/api/advisor', authenticateToken, requireGroupAccess, async (req, res)
       [req.group.id, req.user.id, dataSummary, JSON.stringify(parsedAdvice)]
     );
 
+    // Save to Cache (24h)
+    try {
+        await redisClient.set(cacheKey, JSON.stringify(parsedAdvice), { EX: 86400 });
+    } catch (cacheWriteErr) {
+        console.error("Redis Write Error:", cacheWriteErr);
+    }
+
     res.json({ advice: parsedAdvice });
-  } catch (err) { 
+  } catch (err) {
     console.error('Advisor error:', err);
-    res.status(500).json({ error: err.message }); 
+    res.status(500).json({ error: err.message });
   }
 });
 
 app.get('/api/advisor/history', authenticateToken, requireGroupAccess, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, generated_at, advice_output->>'diagnostico' as diagnostico_summary 
-       FROM ai_advisor_history 
-       WHERE group_id = $1 
+      `SELECT id, generated_at, advice_output->>'diagnostico' as diagnostico_summary
+       FROM ai_advisor_history
+       WHERE group_id = $1
        ORDER BY generated_at DESC`,
       [req.group.id]
     );
@@ -352,7 +411,7 @@ app.get('/api/advisor/history/:id', authenticateToken, requireGroupAccess, async
   }
 });
 
-// Unified Import (OFX / PDF)
+// Import OFX/PDF Bank Statement
 app.post('/api/import/ofx', authenticateToken, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
   try {
@@ -366,15 +425,16 @@ app.post('/api/import/ofx', authenticateToken, upload.single('file'), async (req
 
         console.log("PDF text extracted length:", textContent.length);
 
-        const model = genAI.getGenerativeModel({ 
+        const model = genAI.getGenerativeModel({
           model: "gemini-2.5-flash",
           generationConfig: { response_mime_type: "application/json" }
-        });        const prompt = `
+        });
+        const prompt = `
           Atue como um parser de extratos bancários. Analise o texto bruto abaixo extraído de um PDF e identifique as transações individuais.
-          
+
           Regras de Saída:
           1. Retorne APENAS um JSON Array válido.
-          2. Formato do Objeto: 
+          2. Formato do Objeto:
              {
                "date": "YYYY-MM-DD", (Data da transação)
                "description": "Descrição da compra/transferência",
@@ -383,19 +443,18 @@ app.post('/api/import/ofx', authenticateToken, upload.single('file'), async (req
              }
           3. Ignore linhas de saldo, cabeçalhos de extrato ou rodapés.
           4. Se encontrar valores com "D" ou sinal negativo "-", classifique como DEBIT.
-          
+
           Texto do PDF:
           ${textContent.slice(0, 50000)}
         `;
 
         const result = await model.generateContent(prompt);
         let responseText = await result.response.text();
-        
+
         console.log("Gemini Raw Response Length:", responseText.length);
-        
-        // Limpeza básica para garantir JSON válido
+
         responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-        
+
         let aiTransactions;
         try {
           aiTransactions = JSON.parse(responseText);
@@ -434,6 +493,7 @@ app.post('/api/import/ofx', authenticateToken, upload.single('file'), async (req
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Confirm Import Transactions
 app.post('/api/import/confirm', authenticateToken, requireGroupAccess, async (req, res) => {
     const { transactions } = req.body;
     const client = await pool.connect();

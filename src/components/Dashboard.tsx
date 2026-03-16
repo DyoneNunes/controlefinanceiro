@@ -32,7 +32,7 @@ export const Dashboard = () => {
 
   const monthlyStats = useMemo(() => {
     const isCurrentMonth = (dateStr: string) => isSameMonth(parseISO(dateStr), currentDate);
-    
+
     const incomeTotal = incomes
       .filter(i => isCurrentMonth(i.date))
       .reduce((sum, i) => sum + Number(i.value), 0);
@@ -43,7 +43,7 @@ export const Dashboard = () => {
       return isCurrentMonth(effectiveDate);
     });
 
-    const billsPending = bills.filter(b => 
+    const billsPending = bills.filter(b =>
       b.status === 'pending' && isCurrentMonth(b.dueDate)
     );
 
@@ -84,8 +84,8 @@ export const Dashboard = () => {
     const incomeTotal = incomes
       .filter(i => isCurrentYear(i.date))
       .reduce((sum, i) => sum + Number(i.value), 0);
-      
-    const expenseTotal = 
+
+    const expenseTotal =
       bills.filter(b => isCurrentYear(b.dueDate) && b.status === 'paid').reduce((sum, b) => sum + Number(b.value), 0) +
       randomExpenses.filter(r => isCurrentYear(r.date)).reduce((sum, r) => sum + Number(r.value), 0);
 
@@ -107,15 +107,15 @@ export const Dashboard = () => {
 
   return (
     <div className="space-y-8 animated-fade-in pb-10">
-      
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold text-gray-900">Visão Mensal</h2>
           <p className="text-gray-500 mt-1">Acompanhe suas finanças mensais.</p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row items-center gap-4">
-          <button 
+          <button
             onClick={() => setShowImport(true)}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors"
           >
@@ -252,9 +252,9 @@ export const Dashboard = () => {
             </div>
          </div>
       </div>
-      
+
       <ChartsSection />
-      
+
       {showImport && <BankImport onClose={() => setShowImport(false)} />}
     </div>
   );

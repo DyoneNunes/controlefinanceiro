@@ -92,7 +92,7 @@ export const Login = () => {
         </form>
         
         <div className="mt-8 text-center text-xs text-gray-400">
-           &copy; 2025 Finance System. All rights reserved.
+           &copy; 2026 Finance System. All rights reserved.
         </div>
       </div>
     </div>
