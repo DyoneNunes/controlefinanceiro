@@ -1,0 +1,163 @@
+MINI-MUNDO — SISTEMA DE CONTROLE FINANCEIRO PESSOAL E FAMILIAR
+===============================================================
+
+1. CONTEXTO E ÁREA DE NEGÓCIO
+------------------------------
+
+O gerenciamento financeiro pessoal e familiar é uma das atividades mais fundamentais da vida adulta e, paradoxalmente, uma das mais negligenciadas. Pesquisas indicam que a maioria das famílias brasileiras não possui um controle estruturado de suas receitas e despesas, o que resulta em endividamento, falta de planejamento para o futuro e decisões financeiras tomadas com base em percepções subjetivas, e não em dados concretos. A área de negócio atendida por este sistema é, portanto, a gestão financeira doméstica e pessoal, englobando o ciclo completo de controle de receitas, despesas fixas e variáveis, investimentos e análise inteligente de dados financeiros.
+
+No cenário tradicional, uma pessoa ou família que deseja controlar suas finanças precisa lidar com múltiplas fontes de informação: extratos bancários de diferentes instituições, boletos de contas recorrentes (aluguel, energia, internet, água, telefone), gastos variáveis do dia a dia (alimentação, transporte, lazer), além de aplicações financeiras distribuídas em diferentes plataformas. Sem um sistema centralizado, esse controle é frequentemente feito em planilhas manuais, cadernos ou simplesmente na memória — métodos que são propensos a erros, omissões e abandono ao longo do tempo.
+
+O processo de negócio que o sistema atende pode ser descrito da seguinte forma: um usuário (indivíduo ou membro de uma família) registra-se na plataforma e cria seu espaço financeiro, denominado grupo. Esse grupo funciona como uma carteira financeira compartilhável — pode ser utilizado individualmente (como "Minha Carteira") ou pode incluir outros membros, como cônjuge, filhos ou parceiros financeiros. Cada membro do grupo recebe um papel com permissões específicas: o administrador tem controle total sobre o grupo, podendo convidar membros, alterar configurações e gerenciar todos os dados; o editor pode registrar e modificar dados financeiros, mas não administra o grupo em si; e o visualizador pode consultar os dados, mas não os altera. Essa estrutura de papéis reflete a realidade de muitas famílias, onde um membro principal gerencia as finanças enquanto outros acompanham ou contribuem parcialmente.
+
+Uma vez dentro de um grupo, o fluxo de trabalho principal consiste em registrar as movimentações financeiras em quatro categorias fundamentais:
+
+- Contas fixas (Bills): Representam obrigações recorrentes com data de vencimento definida, como aluguel, parcelas de financiamento, contas de serviços públicos e assinaturas. Cada conta possui um valor, uma data de vencimento e um status que pode ser "pendente", "paga" ou "vencida". Quando o usuário efetua o pagamento de uma conta, ele registra essa ação no sistema, que grava a data do pagamento efetivo — essa distinção entre data de vencimento (competência) e data de pagamento (caixa) é fundamental para a análise financeira posterior.
+
+- Receitas (Incomes): Representam todas as entradas de dinheiro, como salários, rendimentos de freelance, aluguéis recebidos, bonificações ou qualquer outra fonte de renda. O registro inclui uma descrição, o valor e a data de recebimento.
+
+- Gastos variáveis (Random Expenses): São despesas que não possuem recorrência fixa nem valor previsível, como uma ida ao restaurante, uma compra de roupas, um conserto inesperado do carro ou uma despesa médica. Assim como as contas fixas, esses gastos possuem controle de status (pendente, pago, vencido), permitindo ao usuário registrar compromissos futuros e marcá-los como pagos quando quitados.
+
+- Investimentos (Investments): Representam aplicações financeiras do usuário, com registro do valor inicial investido, o percentual do CDI que a aplicação rende, a data de início e a duração em meses. O sistema calcula automaticamente o rendimento projetado com base em juros compostos, permitindo ao usuário visualizar a evolução esperada de seu patrimônio investido.
+
+Com esses dados registrados, o sistema oferece um painel de controle (Dashboard) que apresenta uma visão consolidada da situação financeira do grupo. O painel diferencia dois regimes contábeis essenciais: o regime de caixa, que considera apenas as movimentações efetivamente realizadas (receitas recebidas menos contas e gastos efetivamente pagos), e o regime de competência, que considera as obrigações do período independentemente de terem sido pagas ou não. Essa dupla visão permite ao usuário entender tanto sua liquidez real (quanto dinheiro efetivamente possui) quanto seus compromissos assumidos (quanto deve no período). Além disso, o sistema rastreia o total de dívidas vencidas, oferecendo uma visão clara do passivo em atraso.
+
+O painel também inclui gráficos e visualizações que facilitam a compreensão dos dados: um gráfico de pizza mostrando a distribuição percentual dos gastos por categoria e um gráfico de barras comparando receitas versus despesas ao longo dos meses. A navegação mensal permite ao usuário consultar períodos anteriores e futuros, construindo uma visão histórica de sua evolução financeira.
+
+Um diferencial significativo do sistema é a integração com inteligência artificial por meio do Google Gemini. O módulo de Consultor Financeiro (AI Advisor) agrega automaticamente todos os dados financeiros do grupo — receitas, contas, gastos variáveis e investimentos — e os envia para o modelo de IA, que retorna uma análise estruturada contendo: um diagnóstico da situação financeira atual, os pontos de atenção que requerem cuidado imediato, uma estratégia de ação com recomendações práticas priorizadas, e sugestões de investimento adequadas ao perfil e à capacidade financeira do usuário. Esse recurso democratiza o acesso a consultoria financeira, oferecendo orientação personalizada baseada em dados reais, sem a necessidade de contratar um profissional. As consultas são armazenadas em histórico, permitindo ao usuário acompanhar a evolução das recomendações ao longo do tempo. Para otimizar o uso da API, o sistema utiliza cache inteligente via Redis, que detecta alterações nos dados financeiros e só gera novas consultas quando houve mudança significativa.
+
+Por fim, o sistema oferece um módulo de importação bancária, que permite ao usuário fazer upload de extratos nos formatos OFX e PDF. O sistema processa automaticamente esses arquivos, extrai as transações e as apresenta para confirmação antes de incorporá-las aos registros financeiros. Esse recurso reduz significativamente o trabalho manual de digitação e minimiza erros de lançamento.
+
+
+2. PRINCIPAIS PROBLEMAS ENCONTRADOS E OBJETIVOS DO SISTEMA
+------------------------------------------------------------
+
+A área de gestão financeira pessoal e familiar apresenta uma série de problemas recorrentes e bem documentados que afetam diretamente a qualidade de vida dos indivíduos e de suas famílias. O sistema Controle Financeiro foi concebido para resolver cada um desses problemas de forma direta e prática. A seguir, são detalhados os principais problemas identificados na área de negócio e os objetivos correspondentes que o sistema se propõe a atender.
+
+2.1. Ausência de controle centralizado das finanças
+
+Problema: A grande maioria das pessoas não possui um ponto único onde todas as suas informações financeiras estejam consolidadas. As receitas chegam por diferentes fontes (salário, freelance, rendimentos), as despesas estão espalhadas entre boletos físicos, débitos automáticos, cartões de crédito e pagamentos em dinheiro, e os investimentos ficam distribuídos em plataformas distintas. Essa fragmentação faz com que o indivíduo não tenha uma visão real e completa de sua situação financeira. Ele pode acreditar que está "no azul" quando, na verdade, há compromissos pendentes que ainda não foram contabilizados mentalmente. A consequência direta é a tomada de decisões financeiras baseada em percepções imprecisas, levando a gastos excessivos, endividamento progressivo e incapacidade de poupar.
+
+Objetivo do sistema: Oferecer uma plataforma centralizada onde o usuário registra todas as suas movimentações financeiras — receitas, contas fixas, gastos variáveis e investimentos — em um único lugar. O Dashboard consolida automaticamente esses dados e apresenta indicadores claros de saldo, obrigações e dívidas, eliminando a necessidade de consultar múltiplas fontes para entender a própria situação financeira.
+
+2.2. Falta de distinção entre regime de caixa e regime de competência
+
+Problema: Mesmo pessoas que tentam manter algum controle financeiro cometem um erro conceitual grave: confundem o dinheiro que têm disponível (caixa) com o dinheiro que devem (competência). Por exemplo, um usuário pode ver R$ 3.000 na conta bancária e sentir-se confortável para gastar, ignorando que há R$ 2.500 em contas que vencem nos próximos dias. Essa confusão entre liquidez real e compromissos assumidos é uma das principais causas de inadimplência e uso emergencial de crédito rotativo (cheque especial, cartão de crédito), que possuem taxas de juros extremamente elevadas.
+
+Objetivo do sistema: Apresentar no Dashboard, de forma clara e separada, a visão de caixa (receitas recebidas menos pagamentos efetivamente realizados) e a visão de competência (total de obrigações do período, independentemente de terem sido pagas). Essa dupla perspectiva permite ao usuário saber exatamente quanto possui de fato disponível e quanto ainda precisa desembolsar, evitando a falsa sensação de segurança financeira.
+
+2.3. Esquecimento de vencimentos e acúmulo de dívidas
+
+Problema: Com múltiplas contas vencendo em datas diferentes ao longo do mês, é comum que o usuário esqueça de pagar uma ou mais obrigações dentro do prazo. Cada atraso gera multas, juros moratórios e, em casos mais graves, negativação do nome em órgãos de proteção ao crédito (SPC/Serasa). O problema se agrava quando o usuário não tem visibilidade sobre o total acumulado de dívidas vencidas — ele pode estar inadimplente em várias contas sem ter consciência do montante total em atraso.
+
+Objetivo do sistema: Implementar um controle de status automático para contas fixas e gastos variáveis, com três estados claros: pendente, pago e vencido. O sistema identifica automaticamente quando uma conta ultrapassa sua data de vencimento sem ter sido marcada como paga e altera seu status para "vencida". O Dashboard exibe um indicador dedicado ao total de dívidas vencidas, garantindo que o usuário tenha visibilidade imediata sobre seus atrasos acumulados e possa priorizá-los.
+
+2.4. Dificuldade de gestão financeira compartilhada em famílias
+
+Problema: Em famílias ou casais que compartilham despesas, a gestão financeira conjunta é particularmente desafiadora. Frequentemente, apenas um dos membros tem noção do quadro financeiro completo, enquanto os demais desconhecem os compromissos assumidos ou o saldo disponível. Isso gera conflitos, gastos duplicados, falta de alinhamento sobre prioridades e, em muitos casos, endividamento por desconhecimento mútuo. Ferramentas tradicionais como planilhas compartilhadas são difíceis de manter atualizadas e não oferecem controle de permissões — qualquer pessoa com acesso pode alterar ou apagar dados acidentalmente.
+
+Objetivo do sistema: Permitir a criação de grupos financeiros com múltiplos membros e controle de acesso baseado em papéis (administrador, editor, visualizador). Cada membro acessa os dados do grupo conforme sua permissão, garantindo que todos tenham visibilidade da situação financeira compartilhada, mas com proteção contra alterações indevidas. Além disso, o sistema permite que cada usuário mantenha grupos pessoais separados dos grupos familiares, respeitando a privacidade financeira individual.
+
+2.5. Falta de acesso a orientação financeira qualificada
+
+Problema: A consultoria financeira profissional é um serviço inacessível para a maioria da população, seja pelo custo elevado dos honorários, seja pelo desconhecimento sobre onde encontrar profissionais confiáveis. Sem orientação adequada, o usuário toma decisões financeiras baseadas em intuição, conselhos informais de conhecidos ou informações genéricas da internet que não consideram sua situação particular. Isso resulta em escolhas subótimas de investimento (como deixar todo o dinheiro na poupança, que historicamente rende abaixo da inflação), ausência de reserva de emergência e incapacidade de traçar estratégias de longo prazo para alcançar objetivos financeiros.
+
+Objetivo do sistema: Integrar um Consultor Financeiro baseado em Inteligência Artificial (Google Gemini) que analisa automaticamente todos os dados financeiros do usuário e gera recomendações personalizadas. A análise inclui diagnóstico da situação atual, pontos de atenção prioritários, estratégia de ação e sugestões de investimento adequadas ao perfil do usuário. O histórico de consultas permite acompanhar a evolução das recomendações ao longo do tempo, funcionando como um acompanhamento contínuo que antes só era possível com a contratação de um consultor profissional.
+
+2.6. Trabalho manual excessivo no registro de transações
+
+Problema: O registro manual de cada transação financeira é um processo tedioso e demorado. Um único mês pode conter dezenas de pequenas transações no cartão de débito, compras online, transferências e pagamentos diversos. A necessidade de digitar cada uma dessas movimentações é o principal motivo pelo qual as pessoas abandonam tentativas anteriores de controle financeiro — o esforço de manutenção supera a percepção de benefício. Além disso, a digitação manual está sujeita a erros de valor, data e categorização, comprometendo a confiabilidade dos dados.
+
+Objetivo do sistema: Oferecer um módulo de importação automática de extratos bancários nos formatos OFX e PDF. O sistema processa o arquivo enviado pelo usuário, extrai automaticamente as transações com seus valores e datas, e apresenta uma prévia para revisão antes da confirmação. Esse fluxo em duas etapas (prévia e confirmação) reduz drasticamente o trabalho manual sem sacrificar o controle do usuário sobre os dados importados.
+
+2.7. Incapacidade de visualizar padrões e tendências nos gastos
+
+Problema: Mesmo quando uma pessoa registra suas despesas, a simples lista de valores e datas não é suficiente para identificar padrões comportamentais de consumo. O usuário não percebe facilmente que, por exemplo, gasta proporcionalmente mais com alimentação fora de casa do que imagina, ou que seus gastos com lazer triplicam em determinados meses do ano. Sem essa visibilidade, não é possível tomar medidas corretivas direcionadas — cortar gastos de forma genérica é ineficaz e insustentável, pois não ataca as categorias que realmente pesam no orçamento.
+
+Objetivo do sistema: Fornecer visualizações gráficas que transformem dados brutos em informação acionável. O gráfico de pizza revela a distribuição percentual dos gastos por categoria, permitindo identificar imediatamente quais categorias consomem a maior fatia do orçamento. O gráfico de barras compara receitas e despesas ao longo dos meses, evidenciando tendências de melhora ou piora na saúde financeira. A navegação mensal permite ao usuário percorrer o histórico e identificar sazonalidades ou eventos atípicos.
+
+2.8. Desconhecimento sobre rendimento real dos investimentos
+
+Problema: Muitas pessoas possuem investimentos em renda fixa (CDBs, LCIs, LCAs, Tesouro Direto) mas não sabem calcular quanto esses investimentos efetivamente rendem ao longo do tempo. A falta de compreensão sobre juros compostos e a relação entre percentual do CDI e rendimento real leva o usuário a manter aplicações pouco rentáveis por desconhecimento, ou a resgatar investimentos antes do prazo ideal por não visualizar o impacto da manutenção no longo prazo.
+
+Objetivo do sistema: Calcular automaticamente o rendimento projetado dos investimentos com base no valor inicial, percentual do CDI contratado e duração da aplicação, utilizando a fórmula de juros compostos. O usuário visualiza de forma clara quanto cada investimento renderá ao final do período, podendo comparar diferentes aplicações e tomar decisões informadas sobre onde alocar seus recursos.
+
+2.9. Resumo dos Objetivos
+
++---+----------------------------------------------+------------------------------------------------------------------------+
+| # | Problema                                     | Objetivo do Sistema                                                    |
++---+----------------------------------------------+------------------------------------------------------------------------+
+| 1 | Informações financeiras fragmentadas         | Centralizar todas as movimentações em uma plataforma única com         |
+|   |                                              | Dashboard consolidado                                                  |
++---+----------------------------------------------+------------------------------------------------------------------------+
+| 2 | Confusão entre dinheiro disponível e         | Separar visões de caixa (realizado) e competência (obrigações)         |
+|   | compromissos                                 |                                                                        |
++---+----------------------------------------------+------------------------------------------------------------------------+
+| 3 | Esquecimento de vencimentos                  | Controle automático de status (pendente/pago/vencido) com indicador    |
+|   |                                              | de dívidas                                                             |
++---+----------------------------------------------+------------------------------------------------------------------------+
+| 4 | Gestão familiar desorganizada                | Grupos compartilhados com controle de papéis e permissões              |
++---+----------------------------------------------+------------------------------------------------------------------------+
+| 5 | Falta de orientação financeira               | Consultor IA integrado com análises personalizadas e histórico         |
++---+----------------------------------------------+------------------------------------------------------------------------+
+| 6 | Registro manual tedioso                      | Importação automática de extratos bancários (OFX/PDF)                  |
++---+----------------------------------------------+------------------------------------------------------------------------+
+| 7 | Invisibilidade de padrões de gasto           | Gráficos de distribuição e comparação com navegação temporal           |
++---+----------------------------------------------+------------------------------------------------------------------------+
+| 8 | Desconhecimento do rendimento de             | Cálculo automático de projeção de rendimento com juros compostos       |
+|   | investimentos                                |                                                                        |
++---+----------------------------------------------+------------------------------------------------------------------------+
+
+
+3. ESCOPO E CENÁRIO DO SISTEMA
+-------------------------------
+
+O Controle Financeiro é um sistema web responsivo, acessível via navegador, projetado para funcionar como a central de comando financeiro de indivíduos e famílias. O cenário de uso típico do sistema pode ser descrito pelo seguinte roteiro:
+
+Cenário 1 — Primeiro acesso e configuração inicial:
+Maria é uma profissional liberal que decide organizar suas finanças pessoais. Ela acessa o sistema pelo navegador e cria sua conta informando um nome de usuário e senha. Ao fazer login pela primeira vez, o sistema cria automaticamente um grupo padrão chamado "Minha Carteira", que será seu espaço financeiro pessoal. Maria começa cadastrando suas receitas mensais (salário e renda de freelance), suas contas fixas (aluguel, internet, energia, plano de saúde) e seus investimentos atuais (um CDB rendendo 100% do CDI). Com esses dados iniciais, o Dashboard já passa a exibir sua situação financeira de forma visual e consolidada.
+
+Cenário 2 — Gestão financeira familiar compartilhada:
+Maria decide que seu cônjuge, João, também deve acompanhar as finanças da casa. Ela cria um novo grupo chamado "Casa" e convida João pelo nome de usuário, atribuindo-lhe o papel de editor. Agora, ambos podem registrar receitas e despesas no grupo compartilhado. João registra um gasto variável de R$ 350,00 com manutenção do carro. Maria, ao acessar o Dashboard do grupo "Casa", vê imediatamente o impacto desse gasto no saldo mensal. Ela também consegue alternar entre o grupo pessoal "Minha Carteira" e o grupo familiar "Casa" pelo seletor de grupos na barra lateral, mantendo as finanças pessoais separadas das familiares.
+
+Cenário 3 — Controle de vencimentos e pagamentos:
+No início do mês, Maria acessa o sistema e visualiza todas as contas pendentes para o período. O aluguel vence no dia 5, a conta de energia no dia 10, e o plano de saúde no dia 15. Conforme realiza cada pagamento, ela marca a respectiva conta como "paga" no sistema. O Dashboard atualiza automaticamente a visão de caixa (refletindo o dinheiro efetivamente gasto) e a visão de competência (mostrando a redução das obrigações pendentes). Se Maria esquecer de pagar uma conta e a data de vencimento passar, o sistema altera automaticamente o status para "vencida", e o valor é adicionado ao indicador de dívidas no painel.
+
+Cenário 4 — Consultoria financeira com inteligência artificial:
+Após três meses de uso consistente, Maria acumula um histórico significativo de dados financeiros. Ela acessa o módulo de Consultor IA e solicita uma análise. O sistema envia automaticamente um resumo consolidado de todas as receitas, despesas, contas e investimentos para o modelo Gemini, que retorna um relatório detalhado: identifica que Maria compromete 68% de sua renda com despesas fixas (acima do recomendado), sugere renegociar o plano de saúde, recomenda criar uma reserva de emergência equivalente a seis meses de despesas e indica diversificar os investimentos para incluir títulos indexados à inflação. Maria salva essa consulta e, nos meses seguintes, solicita novas análises para acompanhar se suas ações estão surtindo efeito.
+
+Cenário 5 — Importação de extratos bancários:
+Para agilizar o registro de gastos variáveis, Maria exporta o extrato mensal do seu banco no formato OFX e faz upload no módulo de importação. O sistema processa o arquivo, identifica automaticamente as transações (débitos e créditos), e apresenta uma prévia para que Maria revise e confirme antes de incorporar os dados ao sistema. Isso evita que ela precise digitar manualmente dezenas de pequenas transações do cartão de débito.
+
+Cenário 6 — Análise histórica e planejamento:
+Ao final do ano, Maria utiliza a navegação mensal do Dashboard para revisar cada mês do ano anterior. Ela observa que seus gastos variáveis aumentaram significativamente em dezembro (festas de fim de ano) e que houve um mês em que a receita caiu drasticamente devido a um cliente que atrasou o pagamento. Com base nessas informações e na orientação do Consultor IA, ela define metas financeiras para o próximo ano: reduzir gastos variáveis em 15%, aumentar a reserva de emergência e aplicar 20% da renda em investimentos diversificados. O sistema passa a ser a ferramenta central para acompanhar o progresso dessas metas mês a mês.
+
+
+4. DELIMITAÇÃO DO ESCOPO
+--------------------------
+
+O sistema ABRANGE as seguintes funcionalidades:
+
+- Cadastro e autenticação de usuários com segurança (hash de senha e tokens JWT)
+- Criação e gerenciamento de grupos financeiros com controle de acesso por papéis (admin, editor, visualizador)
+- CRUD completo de contas fixas, receitas, gastos variáveis e investimentos
+- Controle de status de pagamento com distinção entre data de vencimento e data de pagamento
+- Dashboard com indicadores financeiros consolidados nos regimes de caixa e competência
+- Visualizações gráficas (pizza e barras) para análise visual dos dados
+- Navegação temporal (mensal) para consulta de períodos anteriores e futuros
+- Cálculo automático de rendimento de investimentos baseado em CDI e juros compostos
+- Consultor financeiro baseado em inteligência artificial (Google Gemini) com cache inteligente
+- Histórico de consultas ao consultor IA
+- Importação de extratos bancários nos formatos OFX e PDF
+- Interface web responsiva construída com React e Tailwind CSS
+- Infraestrutura containerizada com Docker e pipeline de CI/CD automatizado
+
+O sistema NÃO ABRANGE (fora do escopo):
+
+- Integração direta com APIs bancárias para sincronização automática de transações
+- Emissão de boletos ou processamento de pagamentos
+- Gestão tributária ou cálculo de impostos
+- Planejamento de aposentadoria com simulações atuariais
+- Aplicativo móvel nativo (o acesso é exclusivamente via navegador web)
+- Funcionalidades de e-commerce ou marketplace financeiro
+- Gestão de criptomoedas ou ativos de renda variável (ações, FIIs)

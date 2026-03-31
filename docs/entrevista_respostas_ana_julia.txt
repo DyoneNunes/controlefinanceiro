@@ -1,0 +1,395 @@
+ENTREVISTA DE REQUISITOS — RESPOSTAS DE ANA JULIA
+===================================================
+
+Data da entrevista: 22/03/2026
+Duração: 45 minutos
+
+DADOS DA ENTREVISTADA
+-----------------------
+
+  Nome:                                Ana Julia
+  Há quanto tempo utiliza o sistema:   2 meses
+  Papel no grupo:                      Administradora
+  Tipo de uso:                         Doméstico/Familiar
+  Frequência de uso:                   Semanal (2 a 3 vezes por semana)
+  Outros membros da casa que usam:     Marido (editor) e filho mais velho (visualizador)
+
+
+BLOCO 1 — PERFIL E CONTEXTO FINANCEIRO
+-----------------------------------------
+
+1. "Como você controlava as finanças da sua casa antes de solicitar este sistema?"
+
+   Ana Julia: "Eu usava uma planilha no Google Sheets, mas vivia desatualizada. Às vezes
+   anotava num caderninho na cozinha também. No final das contas, eu ficava perdida porque
+   as informações estavam em lugares diferentes e nunca batiam."
+
+2. "Quantas fontes de renda entram na sua casa? E quantas contas fixas?"
+
+   Ana Julia: "Entram duas rendas fixas: meu salário e o do meu marido. Às vezes ele faz
+   um freelance, mas é esporádico. De contas fixas são umas 8: aluguel, condomínio,
+   energia, água, internet, plano de saúde meu e dele, e a escola do mais novo."
+
+3. "Você é a única responsável pela gestão financeira da casa?"
+
+   Ana Julia: "Basicamente sim. Meu marido me ajuda registrando os gastos dele no
+   sistema, mas quem controla tudo, paga as contas e decide prioridades sou eu. Meu
+   filho mais velho só olha de vez em quando por curiosidade."
+
+4. "Qual era seu maior incômodo antes do sistema? Foi resolvido?"
+
+   Ana Julia: "Era não saber exatamente quanto sobrava no mês. Eu achava que estava
+   sobrando, mas quando chegava no dia 25 já estava apertado. O sistema resolveu isso
+   em boa parte — agora eu vejo o saldo real no Dashboard e sei o que ainda falta pagar."
+
+
+BLOCO 2 — AVALIAÇÃO DAS FUNCIONALIDADES EXISTENTES
+-----------------------------------------------------
+
+4.1. Cadastro e Autenticação
+
+5. "O processo de criar conta e fazer login foi simples?"
+
+   Ana Julia: "Foi sim, bem direto. Criei a conta em menos de um minuto. Só o nome de
+   usuário e senha, sem complicação."
+
+6. "Já precisou recuperar senha ou teve problema de acesso?"
+
+   Ana Julia: "Não, nunca tive problema. Mas se eu esquecesse a senha, não sei como
+   faria — não vi opção de recuperação. Isso me preocupa um pouco."
+
+4.2. Contas Fixas (Bills)
+
+7. "Você cadastra todas as contas fixas da casa?"
+
+   Ana Julia: "Quase todas. Falta só o cartão de crédito, porque ele tem um valor
+   diferente todo mês e eu não sei se cadastro como conta fixa ou gasto variável."
+
+8. "Quando paga uma conta, marca como paga na hora?"
+
+   Ana Julia: "Geralmente marco no mesmo dia à noite, quando sento no computador.
+   Não marco na hora porque pago pelo app do banco no celular e o sistema é mais
+   prático de usar no computador."
+
+9. "Os três estados (pendente, pago, vencido) são suficientes?"
+
+   Ana Julia: "Para a maioria sim. Mas falta um estado para 'agendado'. Às vezes eu
+   agendo o pagamento no banco para daqui 3 dias, e ela não é pendente nem paga ainda.
+   Fica num limbo."
+
+10. "Sente falta de alguma informação no cadastro de contas?"
+
+    Ana Julia: "Sim, sinto falta de categoria. Queria separar o que é moradia, o que é
+    saúde, o que é educação. E a recorrência automática faz muita falta — ter que
+    cadastrar a mesma conta todo mês é chato."
+
+4.3. Receitas (Incomes)
+
+11. "Registra todas as receitas que entram na casa?"
+
+    Ana Julia: "Só as principais: meu salário e o do meu marido. Se ele faz um freelance
+    eu registro também, mas valores pequenos tipo vender algo usado eu não coloco."
+
+12. "A forma de cadastro de receita é suficiente?"
+
+    Ana Julia: "É suficiente, mas eu gostaria de poder marcar de quem é a receita. Tipo
+    'salário - Ana Julia' e 'salário - Ricardo'. Hoje eu coloco na descrição, mas seria
+    melhor ter um campo próprio."
+
+13. "A renda da casa varia ou é fixa?"
+
+    Ana Julia: "É relativamente fixa. Varia quando meu marido pega um freelance ou
+    quando recebemos o décimo terceiro. Não sinto falta de nada específico para isso,
+    só registro quando acontece."
+
+4.4. Gastos Variáveis (Random Expenses)
+
+14. "Com que frequência registra os gastos variáveis?"
+
+    Ana Julia: "Acumulo e registro no final de semana. Às vezes esqueço de anotar um
+    gasto pequeno e ele se perde. Seria bom poder registrar rápido pelo celular na
+    hora da compra."
+
+15. "Maior dificuldade para manter o registro em dia?"
+
+    Ana Julia: "Lembrar de tudo. Gastos pequenos do dia a dia somem da memória. Meu
+    marido quase nunca registra os dele, aí eu tenho que ficar cobrando. Se tivesse
+    um jeito mais rápido de registrar, talvez ele fizesse mais."
+
+16. "Gostaria de categorizar os gastos variáveis?"
+
+    Ana Julia: "Com certeza. Essa é uma das coisas que mais sinto falta. Quero saber
+    quanto a gente gasta com supermercado, quanto com farmácia, quanto com lazer.
+    Hoje está tudo misturado e não consigo analisar direito."
+
+17. "Algum gasto que não sabe como registrar?"
+
+    Ana Julia: "A fatura do cartão de crédito. Ela tem vários gastos dentro, mas eu
+    registro como um valor só. Também não sei como registrar compras parceladas — se
+    coloco o valor total ou só a parcela do mês."
+
+4.5. Investimentos
+
+18. "Possui investimentos cadastrados no sistema?"
+
+    Ana Julia: "Cadastrei só o CDB que eu tenho no Nubank. Meu marido tem uma
+    previdência privada da empresa dele, mas não cadastramos porque não se encaixa
+    no modelo do sistema."
+
+19. "O cálculo baseado no CDI é útil?"
+
+    Ana Julia: "Confesso que não entendo muito bem o que é CDI. O sistema mostra o
+    rendimento e eu confio no número, mas se tivesse uma explicação mais simples tipo
+    'seu dinheiro vai render R$ X em Y meses' seria mais claro para mim."
+
+20. "Possui investimentos que não se encaixam no modelo atual?"
+
+    Ana Julia: "Só a previdência do meu marido. Não temos ações nem cripto. Mas se um
+    dia tivermos, seria bom o sistema cobrir."
+
+21. "Acompanha investimentos mais pelo sistema ou pelos apps dos bancos?"
+
+    Ana Julia: "Pelo app do banco mesmo. O sistema é bom para ter a visão geral, mas
+    quando quero ver o saldo atualizado do investimento vou direto no app. Se o
+    sistema atualizasse sozinho seria diferente."
+
+4.6. Dashboard
+
+22. "Com que frequência acessa o Dashboard? O que olha primeiro?"
+
+    Ana Julia: "Umas 2 a 3 vezes por semana. Primeiro olho o saldo do mês e depois
+    as contas pendentes. Os gráficos eu olho mais no final do mês para ter uma visão
+    geral."
+
+23. "A diferença entre caixa e competência é clara?"
+
+    Ana Julia: "Demorei um pouco para entender, mas agora sim. Caixa é o que realmente
+    saiu da conta, competência é tudo que eu devo no mês. Achei confuso no começo
+    porque os nomes são técnicos. Se chamasse 'Já pago' e 'Total a pagar' seria mais
+    intuitivo."
+
+24. "Os gráficos são úteis? Já tomou decisão com base neles?"
+
+    Ana Julia: "O de barras sim, dá para ver os meses que gastei mais. O de pizza
+    seria mais útil se tivesse categorias nos gastos, porque hoje mostra tudo junto.
+    Já percebi pelo gráfico de barras que dezembro foi muito acima e tentei compensar
+    em janeiro."
+
+25. "Navegação por mês é suficiente?"
+
+    Ana Julia: "Para o dia a dia sim. Mas no final do ano queria ver um resumo anual,
+    tipo quanto gastei no ano todo e quanto entrou. Ter que ficar navegando mês a mês
+    para somar é trabalhoso."
+
+26. "Algum indicador que gostaria de ver e não aparece?"
+
+    Ana Julia: "Queria ver quanto sobra livre depois de pagar tudo que é obrigatório.
+    Tipo: receita menos todas as contas fixas = dinheiro livre para gastar. Isso me
+    ajudaria muito a saber o limite do supermercado e lazer no mês."
+
+4.7. Consultor IA (AI Advisor)
+
+27. "Já utilizou o Consultor IA? Quantas vezes?"
+
+    Ana Julia: "Usei 3 vezes nesses 2 meses."
+
+28. "As recomendações foram úteis?"
+
+    Ana Julia: "Na primeira vez achei muito bom. Ele identificou que a gente gastava
+    demais com delivery e sugeriu um limite. Na terceira vez as recomendações foram
+    parecidas com as anteriores, achei repetitivo."
+
+29. "Confiou nas sugestões de investimento?"
+
+    Ana Julia: "Mais ou menos. Ele sugeriu Tesouro IPCA, mas eu não sei como comprar
+    isso na prática. Se tivesse um passo a passo ou um link seria mais útil."
+
+30. "Mudaria algo na forma como apresenta as informações?"
+
+    Ana Julia: "A linguagem poderia ser mais simples. Tem termos como 'alocação de
+    ativos' e 'diversificação de portfólio' que eu não domino. Preferia que falasse
+    de um jeito mais do dia a dia."
+
+31. "Gostaria que o consultor respondesse perguntas específicas em chat?"
+
+    Ana Julia: "Sim, com certeza! Essa seria uma das melhores melhorias. Quero
+    perguntar coisas como 'dá para trocar a geladeira este mês?' e ele me dizer se
+    o orçamento aguenta ou não."
+
+4.8. Importação Bancária
+
+32. "Já utilizou a importação de extratos?"
+
+    Ana Julia: "Tentei uma vez com o PDF do extrato do Nubank. Funcionou, mas algumas
+    transações vieram com nomes estranhos que eu não reconheci de cara."
+
+33. (Não se aplica — já utilizou.)
+
+34. "As transações foram identificadas corretamente?"
+
+    Ana Julia: "Os valores e datas sim, estavam certos. Mas os nomes das transações
+    vieram como códigos do banco tipo 'PAG*JoseDaSilva' e eu tive que identificar
+    manualmente do que se tratava cada um."
+
+35. "Gostaria de importar de outras fontes?"
+
+    Ana Julia: "CSV seria bom, porque a planilha antiga que eu usava está nesse
+    formato. Conexão direta com o banco seria o sonho, mas entendo que é mais
+    complicado de fazer."
+
+4.9. Grupos e Compartilhamento
+
+36. "Utiliza mais de um grupo?"
+
+    Ana Julia: "Só o grupo da casa. Não criei um pessoal porque praticamente tudo
+    que eu gasto é para a casa mesmo. Mas se tivesse gastos pessoais significativos
+    talvez criasse."
+
+37. "Já convidou membros da família? Foi simples?"
+
+    Ana Julia: "Convidei meu marido e meu filho. Foi simples, coloquei o nome de
+    usuário deles e pronto. Só achei que faltou um convite por e-mail ou link, caso
+    a pessoa ainda não tenha conta."
+
+38. "Os papéis atendem à dinâmica da casa?"
+
+    Ana Julia: "Sim, está bom. Meu marido como editor consegue registrar os gastos
+    dele, e meu filho como visualizador só acompanha. Não preciso de nada diferente
+    disso."
+
+39. "Algum membro já alterou ou apagou dados por engano?"
+
+    Ana Julia: "Meu marido apagou uma receita sem querer uma vez. Só percebemos
+    porque o saldo ficou estranho no Dashboard. Seria bom ter uma lixeira ou um
+    histórico de alterações para desfazer esse tipo de coisa."
+
+
+BLOCO 3 — IDENTIFICAÇÃO DE NOVAS NECESSIDADES
+------------------------------------------------
+
+40. "Gostaria de receber lembretes de vencimento? Por qual canal?"
+
+    Ana Julia: "Sim, por WhatsApp seria perfeito. É onde eu vejo mensagens com mais
+    frequência. E-mail eu demoro para ver."
+
+41. "Sente falta de orçamento mensal por categoria?"
+
+    Ana Julia: "Muita falta. Quero definir que o supermercado é no máximo R$ 1.500 e
+    lazer no máximo R$ 400, e o sistema me avisar quando estiver perto do limite."
+
+42. "Gostaria de definir metas financeiras?"
+
+    Ana Julia: "Sim! Estamos querendo trocar o carro no final do ano. Seria ótimo
+    colocar a meta de R$ 20.000 e ir acompanhando quanto falta."
+
+43. "Precisa gerar relatórios?"
+
+    Ana Julia: "Sim, no final do mês eu gostaria de gerar um PDF com o resumo para
+    mostrar para meu marido. Ele não acessa o sistema todo dia, então um relatório
+    pronto facilita."
+
+44. "Alguma situação que o sistema não cobre?"
+
+    Ana Julia: "O cartão de crédito. A fatura tem dezenas de compras e eu não tenho
+    como detalhar cada uma. Registro só o valor total e perco o controle do que foi
+    gasto no cartão."
+
+45. "Se pudesse adicionar uma única funcionalidade, qual seria?"
+
+    Ana Julia: "Categorias nos gastos, sem dúvida. É o que mais faz falta para eu
+    entender para onde o dinheiro da casa está indo."
+
+
+BLOCO 4 — USABILIDADE E EXPERIÊNCIA GERAL
+--------------------------------------------
+
+46. "De 1 a 10, qual nota para facilidade de uso?"
+
+    Ana Julia: "8. É fácil de usar no geral, mas alguns termos são técnicos demais
+    e sinto falta de atalhos para registrar gastos rápido."
+
+47. "Alguma tela confusa ou difícil?"
+
+    Ana Julia: "A tela de investimentos me confundiu no começo por causa do campo de
+    CDI. Não sabia o que colocar. De resto é tudo bem intuitivo."
+
+48. "Acessa mais pelo computador ou celular?"
+
+    Ana Julia: "Computador, porque é mais confortável. Pelo celular funciona, mas a
+    tela fica um pouco apertada para preencher formulários. Se tivesse um botão
+    rápido tipo 'registrar gasto' no celular seria melhor."
+
+49. "O sistema é rápido o suficiente?"
+
+    Ana Julia: "Sim, nunca travou. O Consultor IA demora uns 10 segundos para gerar
+    a resposta, mas é aceitável."
+
+50. "Visualmente é agradável?"
+
+    Ana Julia: "Sim, gosto das cores e do visual limpo. Não mudaria nada na aparência."
+
+
+BLOCO 5 — PRIORIZAÇÃO E ENCERRAMENTO
+---------------------------------------
+
+51. "Três melhorias que fariam mais diferença?"
+
+    Ana Julia: "1. Categorias nos gastos — é o que mais preciso.
+                2. Orçamento mensal por categoria com alertas.
+                3. Chat com o Consultor IA para perguntas específicas."
+
+52. "Algo que não foi perguntado e gostaria de comentar?"
+
+    Ana Julia: "Só queria elogiar o Dashboard. Antes eu não tinha noção nenhuma de
+    como estava o mês, agora é a primeira coisa que abro. Mudou bastante a forma
+    como eu vejo o dinheiro da casa."
+
+53. "Recomendaria o sistema?"
+
+    Ana Julia: "Sim, já recomendei para minha irmã que também vive perdida com as
+    contas de casa. Falei que é simples e que finalmente consigo ver para onde o
+    dinheiro está indo."
+
+
+=========================================================================
+CONSOLIDAÇÃO DOS RESULTADOS
+=========================================================================
+
+Registro da entrevista:
+
+  Entrevistada:                        Ana Julia
+  Data:                                22/03/2026
+  Contexto:                            Solicitante do sistema para gestão financeira
+                                       de sua casa
+  Tempo de uso do sistema:             2 meses
+  Papel no grupo:                      Administradora
+  Tipo de uso:                         Doméstico/Familiar
+  Outros membros da casa no sistema:   Marido (editor), filho mais velho (visualizador)
+  Frequência de uso:                   Semanal (2 a 3 vezes)
+  Nota de satisfação (1-10):           8
+  Top 3 melhorias solicitadas:         1. Categorias nos gastos
+                                       2. Orçamento mensal por categoria com alertas
+                                       3. Chat interativo com Consultor IA
+  Problemas críticos relatados:        - Falta de recuperação de senha
+                                       - Sem lixeira/histórico (marido apagou dado)
+                                       - Cartão de crédito sem tratamento adequado
+  Novas funcionalidades desejadas:     - Categorias para gastos e contas
+                                       - Recorrência automática de contas fixas
+                                       - Orçamento mensal com limites e alertas
+                                       - Metas financeiras com acompanhamento
+                                       - Notificações por WhatsApp
+                                       - Chat interativo com IA
+                                       - Relatório mensal em PDF
+                                       - Resumo anual no Dashboard
+                                       - Indicador de dinheiro livre no mês
+                                       - Convite por e-mail/link
+                                       - Botão de registro rápido no celular
+  Expectativas iniciais atendidas?:    Parcialmente — o objetivo principal de ter
+                                       visibilidade sobre as finanças da casa foi
+                                       atingido. Ana Julia elogiou o Dashboard como
+                                       transformador. Porém, a falta de categorias
+                                       nos gastos limita a análise detalhada, e
+                                       funcionalidades como orçamento e metas ainda
+                                       não existem. O sistema atende bem o básico,
+                                       mas precisa evoluir para cobrir o ciclo
+                                       completo de planejamento financeiro doméstico.

@@ -9,11 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Initial Users (Hashed passwords)
-INSERT INTO users (username, password_hash) VALUES 
-('dyone.andrade', '$2b$10$wzb.2xBN9EDngyL2t7NGPOospiTrZ.FnyEb772X0NollbTMpq1/42'),
-('julia.ferreira', '$2b$10$pONBVQDtwn5YgOv5cMFkueBCAyvS5u1zgj2KJL5gw5eKazOYFD15m')
-ON CONFLICT (username) DO NOTHING;
+-- We removed initial users for privacy. New users can be registered via the application.
 
 -- Bills Table
 CREATE TABLE IF NOT EXISTS bills (
