@@ -17,7 +17,7 @@ import { AIAdvisor } from './components/AIAdvisor';
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
-  
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -25,7 +25,7 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-  
+
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 };
 
@@ -44,72 +44,73 @@ function App() {
                   </Layout>
                 </PrivateRoute>
               } />
-                            <Route path="/bills/new" element={
-                              <PrivateRoute>
-                                <Layout>
-                                  <BillForm onClose={() => window.history.back()} />
-                                </Layout>
-                              </PrivateRoute>
-                            } />
-                            <Route path="/bills" element={
-                              <PrivateRoute>
-                                <Layout>
-                                  <BillList />
-                                </Layout>
-                              </PrivateRoute>
-                            } />
-                            <Route path="/incomes/new" element={
-                              <PrivateRoute>
-                                <Layout>
-                                  <IncomeForm onClose={() => window.history.back()} />
-                                </Layout>
-                              </PrivateRoute>
-                            } />
-                            <Route path="/incomes" element={
-                              <PrivateRoute>
-                                <Layout>
-                                  <IncomeList />
-                                </Layout>
-                              </PrivateRoute>
-                            } />
-                            <Route path="/investments/new" element={
-                               <PrivateRoute>
-                                  <Layout>
-                                     <InvestmentForm onClose={() => window.history.back()} />
-                                  </Layout>
-                               </PrivateRoute>
-                            } />
-                             <Route path="/investments" element={
-                               <PrivateRoute>
-                                  <Layout>
-                                     <InvestmentList />
-                                  </Layout>
-                               </PrivateRoute>
-                            } />
-                             <Route path="/expenses/new" element={
-                               <PrivateRoute>
-                                  <Layout>
-                                     <RandomExpenseForm onClose={() => window.history.back()} />
-                                  </Layout>
-                               </PrivateRoute>
-                            } />            <Route path="/expenses" element={
-               <PrivateRoute>
+              <Route path="/bills/new" element={
+                <PrivateRoute>
                   <Layout>
-                     <RandomExpenseList />
+                    <BillForm onClose={() => window.history.back()} />
                   </Layout>
-               </PrivateRoute>
-            } />
-             <Route path="/advisor" element={
-               <PrivateRoute>
+                </PrivateRoute>
+              } />
+              <Route path="/bills" element={
+                <PrivateRoute>
                   <Layout>
-                     <AIAdvisor />
+                    <BillList />
                   </Layout>
-               </PrivateRoute>
-            } />
-          </Routes>
-        </FinanceProvider>
-      </GroupProvider>
-    </AuthProvider>
+                </PrivateRoute>
+              } />
+              <Route path="/incomes/new" element={
+                <PrivateRoute>
+                  <Layout>
+                    <IncomeForm onClose={() => window.history.back()} />
+                  </Layout>
+                </PrivateRoute>
+              } />
+              <Route path="/incomes" element={
+                <PrivateRoute>
+                  <Layout>
+                    <IncomeList />
+                  </Layout>
+                </PrivateRoute>
+              } />
+              <Route path="/investments/new" element={
+                <PrivateRoute>
+                  <Layout>
+                    <InvestmentForm onClose={() => window.history.back()} />
+                  </Layout>
+                </PrivateRoute>
+              } />
+              <Route path="/investments" element={
+                <PrivateRoute>
+                  <Layout>
+                    <InvestmentList />
+                  </Layout>
+                </PrivateRoute>
+              } />
+              <Route path="/expenses/new" element={
+                <PrivateRoute>
+                  <Layout>
+                    <RandomExpenseForm onClose={() => window.history.back()} />
+                  </Layout>
+                </PrivateRoute>
+              } />
+              <Route path="/expenses" element={
+                <PrivateRoute>
+                  <Layout>
+                    <RandomExpenseList />
+                  </Layout>
+                </PrivateRoute>
+              } />
+              <Route path="/advisor" element={
+                <PrivateRoute>
+                  <Layout>
+                    <AIAdvisor />
+                  </Layout>
+                </PrivateRoute>
+              } />
+            </Routes>
+          </FinanceProvider>
+        </GroupProvider>
+      </AuthProvider>
     </Router>
   );
 }

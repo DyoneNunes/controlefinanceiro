@@ -45,24 +45,52 @@ export const GroupProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/groups`, {
+      const res = await fetch(`${API_URL}/auth/groups`, {
         headers: getAuthHeaders()
       });
       if (res.ok) {
         const data = await res.json();
         setGroups(data);
         if (data && data.length > 0) {
-           const adminGroup = data.find((g: Group) => g.role === 'admin') || data[0];
-           setCurrentGroup(adminGroup);
+           // Manter a carteira atual se ela ainda existir na lista
+           const currentStillExists = currentGroup && data.find((g: Group) => g.id === currentGroup.id);
+           if (currentStillExists) {
+             setCurrentGroup(currentStillExists);
+           } else {
+             const adminGroup = data.find((g: Group) => g.role === 'admin') || data[0];
+             setCurrentGroup(adminGroup);
+           }
         } else {
+           // Auto-criar carteira padrao se nao tem nenhuma
+           try {
+             const createRes = await fetch(`${API_URL}/auth/groups`, {
+               method: 'POST',
+               headers: getAuthHeaders(),
+               body: JSON.stringify({ name: 'Minha Carteira' })
+             });
+             if (createRes.ok) {
+               const newGroup = await createRes.json();
+               setGroups([newGroup]);
+               setCurrentGroup(newGroup);
+               return; // Ja setou tudo, nao precisa continuar
+             }
+           } catch (autoCreateErr) {
+             console.error('Erro ao auto-criar carteira:', autoCreateErr);
+           }
            setCurrentGroup(null);
         }
+      } else {
+        console.error('GroupContext: API retornou status', res.status);
+        setGroups([]);
+        setCurrentGroup(null);
       }
     } catch (e) {
       console.error('GroupContext: Erro ao buscar grupos', e);
+      setGroups([]);
+      setCurrentGroup(null);
     } finally {
       setLoading(false);
     }
@@ -72,26 +100,30 @@ export const GroupProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchGroups();
   }, [isAuthenticated, token]);
 
-  const selectGroup = (_groupId: string) => {};
+  const selectGroup = (groupId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    if (group) setCurrentGroup(group);
+  };
 
   const createGroup = async (name: string) => {
-    try {
-      const res = await fetch(`${API_URL}/groups`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ name })
-      });
-      if (res.ok) await fetchGroups();
-    } catch (e) {
-      console.error(e);
-      throw e;
+    const res = await fetch(`${API_URL}/auth/groups`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ name })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Erro ao criar carteira' }));
+      throw new Error(err.error || 'Erro ao criar carteira');
     }
+    const newGroup = await res.json();
+    await fetchGroups();
+    setCurrentGroup({ id: newGroup.id, name: newGroup.name, role: newGroup.role });
   };
 
   const inviteUser = async (username: string) => {
     if (!currentGroup) return;
     try {
-      const res = await fetch(`${API_URL}/groups/${currentGroup.id}/invite`, {
+      const res = await fetch(`${API_URL}/auth/groups/${currentGroup.id}/invite`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'X-Group-ID': currentGroup.id },
         body: JSON.stringify({ username })
@@ -109,7 +141,7 @@ export const GroupProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateGroup = async (groupId: string, name: string) => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/groups/${groupId}`, {
+      const res = await fetch(`${API_URL}/auth/groups/${groupId}`, {
         method: 'PUT',
         headers: { ...getAuthHeaders(), 'X-Group-ID': groupId },
         body: JSON.stringify({ name })
@@ -124,7 +156,7 @@ export const GroupProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteGroup = async (groupId: string) => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/groups/${groupId}`, {
+      const res = await fetch(`${API_URL}/auth/groups/${groupId}`, {
         method: 'DELETE',
         headers: { ...getAuthHeaders(), 'X-Group-ID': groupId },
       });

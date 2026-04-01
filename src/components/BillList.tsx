@@ -29,11 +29,11 @@ export const BillList = () => {
   };
 
   const getStatusLabel = (status: BillStatus) => {
-      switch (status) {
-        case 'paid': return 'Pago';
-        case 'overdue': return 'Atrasado';
-        case 'pending': return 'Pendente';
-      }
+    switch (status) {
+      case 'paid': return 'Pago';
+      case 'overdue': return 'Atrasado';
+      case 'pending': return 'Pendente';
+    }
   };
 
   const getGroupName = (groupId: string) => {
@@ -45,8 +45,8 @@ export const BillList = () => {
     <div className="space-y-6 animated-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-           <h2 className="text-3xl font-bold text-gray-900">Minhas Contas</h2>
-           <p className="text-gray-500 mt-1">Gerencie seus pagamentos.</p>
+          <h2 className="text-3xl font-bold text-gray-900">Minhas Contas</h2>
+          <p className="text-gray-500 mt-1">Gerencie seus pagamentos.</p>
         </div>
         <button
           onClick={() => setIsFormOpen(true)}
@@ -77,11 +77,11 @@ export const BillList = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {filteredBills.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center text-gray-500">
-             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <Plus className="w-8 h-8 text-gray-400" />
-             </div>
-             <p className="text-lg font-medium text-gray-900">Nenhuma conta encontrada</p>
-             <p className="text-sm">Tente mudar o filtro ou adicione uma nova conta.</p>
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <Plus className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-lg font-medium text-gray-900">Nenhuma conta encontrada</p>
+            <p className="text-sm">Tente mudar o filtro ou adicione uma nova conta.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -113,25 +113,29 @@ export const BillList = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
-                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         {bill.status !== 'paid' && (
-                            <button
+                          <button
                             onClick={() => markAsPaid(bill.id)}
                             title="Marcar como Pago"
                             className="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
-                            >
+                          >
                             <Check className="w-4 h-4" />
-                            </button>
+                          </button>
                         )}
-                        
+
                         <button
-                            onClick={() => deleteBill(bill.id)}
-                            title="Excluir"
-                            className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors"
+                          onClick={() => {
+                            if (window.confirm('Tem certeza que deseja excluir esta conta?')) {
+                              deleteBill(bill.id);
+                            }
+                          }}
+                          title="Excluir"
+                          className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors"
                         >
-                            <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
-                       </div>
+                      </div>
                     </td>
                   </tr>
                 ))}

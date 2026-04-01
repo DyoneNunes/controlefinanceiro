@@ -1,6 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-CREATE TABLE ai_advisor_history (
+CREATE TABLE IF NOT EXISTS ai_advisor_history (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     group_id UUID NOT NULL REFERENCES finance_groups(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -9,5 +9,5 @@ CREATE TABLE ai_advisor_history (
     advice_output JSONB NOT NULL
 );
 
-CREATE INDEX idx_ai_advisor_history_group_id ON ai_advisor_history(group_id);
-CREATE INDEX idx_ai_advisor_history_user_id ON ai_advisor_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_advisor_history_group_id ON ai_advisor_history(group_id);
+CREATE INDEX IF NOT EXISTS idx_ai_advisor_history_user_id ON ai_advisor_history(user_id);

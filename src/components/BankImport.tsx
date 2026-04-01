@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, FileText, Check, X, AlertCircle } from 'lucide-react';
+import { Upload, Check, X, AlertCircle, FileUp, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGroup } from '../context/GroupContext';
 import { useFinance } from '../context/FinanceContext';
@@ -17,7 +17,7 @@ interface ImportedTransaction {
 export const BankImport = ({ onClose }: { onClose: () => void }) => {
   const { token } = useAuth();
   const { currentGroup } = useGroup();
-  const { refreshData } = useFinance(); // We need to refresh data after import
+  const { refreshData } = useFinance();
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -62,7 +62,6 @@ export const BankImport = ({ onClose }: { onClose: () => void }) => {
 
       const data = await response.json();
       
-      // Auto-classify based on type
       const classified = data.transactions.map((tx: any) => ({
          ...tx,
          category: tx.category ? tx.category : (tx.amount < 0 ? 'expense' : 'income'),
@@ -107,7 +106,6 @@ export const BankImport = ({ onClose }: { onClose: () => void }) => {
 
       if (!response.ok) throw new Error('Falha ao salvar transações');
 
-      // Success
       await refreshData();
       onClose();
       alert('Transações importadas com sucesso!');
@@ -119,98 +117,124 @@ export const BankImport = ({ onClose }: { onClose: () => void }) => {
     }
   };
 
+  const selectedCount = transactions.filter(t => t.selected).length;
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        
+    <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-start justify-center p-4 pt-6 sm:pt-12 md:pt-20 z-50 modal-overlay overflow-y-auto" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[calc(100vh-3rem)] sm:max-h-[85vh] overflow-hidden flex flex-col modal-panel" onClick={e => e.stopPropagation()}>
+        {/* Accent bar */}
+        <div className="h-1.5 bg-gradient-to-r from-indigo-500 to-blue-500 shrink-0" />
+
         {/* Header */}
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-indigo-600" />
-            Importar Extrato Bancário (OFX)
-          </h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-500">
+        <div className="px-6 pt-5 pb-4 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-indigo-50 border border-indigo-100">
+              <FileUp className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Importar Extrato</h2>
+              <p className="text-sm text-gray-400">OFX e PDF suportados</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          
+        <div className="flex-1 overflow-y-auto border-t border-gray-100 p-6">
+
           {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-4 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5" />
-              {error}
+            <div className="bg-rose-50 text-rose-700 p-4 rounded-xl mb-4 flex items-center gap-3 border border-rose-100">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <p className="text-sm font-medium">{error}</p>
             </div>
           )}
 
           {step === 'upload' ? (
-            <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
-                 onClick={() => fileInputRef.current?.click()}>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                className="hidden" 
-                accept=".ofx,.qfx,.pdf" 
+            <div
+              className="flex flex-col items-center justify-center py-16 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50 hover:bg-indigo-50/50 hover:border-indigo-300 transition-all cursor-pointer group"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept=".ofx,.qfx,.pdf"
               />
-              <Upload className="w-12 h-12 text-indigo-400 mb-4" />
-              <p className="text-lg font-medium text-gray-600">
-                {file ? file.name : 'Clique para selecionar o arquivo OFX ou PDF'}
+              <div className="w-16 h-16 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-indigo-100 transition-colors">
+                <Upload className="w-8 h-8 text-indigo-500" />
+              </div>
+              <p className="text-lg font-semibold text-gray-700">
+                {file ? file.name : 'Clique para selecionar o arquivo'}
               </p>
               <p className="text-sm text-gray-400 mt-2">Suporta Nubank, Inter, Itaú, BB (OFX e PDF)</p>
-              
+
               {file && (
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); handleUpload(); }}
                   disabled={loading}
-                  className="mt-6 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                  className="mt-6 px-8 py-3 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-2"
                 >
-                  {loading ? 'Processando...' : 'Carregar Arquivo'}
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <FileUp className="w-4 h-4" />
+                      Carregar Arquivo
+                    </>
+                  )}
                 </button>
               )}
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex justify-between items-center mb-4">
-                <p className="text-gray-600">Confirme as transações antes de importar.</p>
-                <div className="text-sm text-gray-500">
-                  {transactions.filter(t => t.selected).length} selecionados
+              <div className="flex justify-between items-center">
+                <p className="text-gray-600 font-medium">Confirme as transações antes de importar.</p>
+                <div className="text-sm font-semibold px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                  {selectedCount} selecionado{selectedCount !== 1 ? 's' : ''}
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-xl border border-gray-200">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-gray-50 text-gray-500 text-sm">
-                      <th className="p-3 rounded-tl-lg">Importar</th>
-                      <th className="p-3">Data</th>
-                      <th className="p-3">Descrição</th>
-                      <th className="p-3">Valor</th>
-                      <th className="p-3 rounded-tr-lg">Categoria</th>
+                    <tr className="bg-gray-50/80 text-gray-500 text-sm">
+                      <th className="p-3 font-semibold">Importar</th>
+                      <th className="p-3 font-semibold">Data</th>
+                      <th className="p-3 font-semibold">Descrição</th>
+                      <th className="p-3 font-semibold">Valor</th>
+                      <th className="p-3 font-semibold">Tipo</th>
                     </tr>
                   </thead>
                   <tbody className="text-sm">
                     {transactions.map((tx, idx) => (
-                      <tr key={idx} className={`border-b border-gray-100 ${!tx.selected ? 'opacity-50' : ''}`}>
+                      <tr key={idx} className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${!tx.selected ? 'opacity-40' : ''}`}>
                         <td className="p-3">
-                          <input 
-                            type="checkbox" 
-                            checked={tx.selected} 
+                          <input
+                            type="checkbox"
+                            checked={tx.selected}
                             onChange={() => toggleSelect(idx)}
-                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
                           />
                         </td>
-                        <td className="p-3 font-mono text-gray-600">{tx.date}</td>
+                        <td className="p-3 font-mono text-gray-600 text-xs">{tx.date}</td>
                         <td className="p-3 font-medium text-gray-800">{tx.description}</td>
-                        <td className={`p-3 font-bold ${tx.amount < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                        <td className={`p-3 font-bold ${tx.amount < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
                           {tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </td>
                         <td className="p-3">
-                          <select 
+                          <select
                             value={tx.category}
                             onChange={(e) => changeCategory(idx, e.target.value as any)}
-                            className="bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs"
+                            className="bg-gray-50/80 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-medium cursor-pointer focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                           >
                             <option value="income">Receita</option>
                             <option value="expense">Despesa</option>
@@ -227,17 +251,29 @@ export const BankImport = ({ onClose }: { onClose: () => void }) => {
 
         {/* Footer */}
         {step === 'review' && (
-          <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
-            <button onClick={() => setStep('upload')} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg">
+          <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/80 shrink-0">
+            <button
+              onClick={() => { setStep('upload'); setFile(null); setTransactions([]); }}
+              className="px-5 py-2.5 text-gray-600 border border-gray-200 hover:bg-gray-100 rounded-xl font-semibold transition-all"
+            >
               Voltar
             </button>
-            <button 
+            <button
               onClick={handleConfirmImport}
-              disabled={loading}
-              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-sm disabled:opacity-50 flex items-center gap-2"
+              disabled={loading || selectedCount === 0}
+              className="px-6 py-2.5 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
             >
-              {loading ? 'Salvando...' : 'Confirmar Importação'}
-              <Check className="w-4 h-4" />
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  Confirmar Importação
+                </>
+              )}
             </button>
           </div>
         )}

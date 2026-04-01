@@ -20,8 +20,8 @@ export const IncomeList = () => {
     <div className="space-y-6 animated-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-           <h2 className="text-3xl font-bold text-gray-900">Entradas</h2>
-           <p className="text-gray-500 mt-1">Gerencie suas rendas e recebimentos.</p>
+          <h2 className="text-3xl font-bold text-gray-900">Entradas</h2>
+          <p className="text-gray-500 mt-1">Gerencie suas rendas e recebimentos.</p>
         </div>
         <button
           onClick={() => setIsFormOpen(true)}
@@ -35,11 +35,11 @@ export const IncomeList = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {incomes.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center text-gray-500">
-             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <TrendingUp className="w-8 h-8 text-gray-400" />
-             </div>
-             <p className="text-lg font-medium text-gray-900">Nenhuma entrada registrada</p>
-             <p className="text-sm">Adicione seu salário ou outras rendas.</p>
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <TrendingUp className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-lg font-medium text-gray-900">Nenhuma entrada registrada</p>
+            <p className="text-sm">Adicione seu salário ou outras rendas.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -65,13 +65,17 @@ export const IncomeList = () => {
                       {formatCurrency(income.value)}
                     </td>
                     <td className="px-6 py-4 text-right">
-                        <button
-                            onClick={() => deleteIncome(income.id)}
-                            title="Excluir"
-                            className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
+                      <button
+                        onClick={() => {
+                          if (window.confirm('Tem certeza que deseja excluir esta entrada?')) {
+                            deleteIncome(income.id);
+                          }
+                        }}
+                        title="Excluir"
+                        className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}

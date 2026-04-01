@@ -27,7 +27,7 @@ jobs:
         run: |
           cd server
           npm install
-          npm test sanity.test.js # Roda apenas a sanidade nesta etapa
+          npm test -- sanity.test.js # Roda apenas a sanidade nesta etapa
 
   ai-validation:
     name: Validação da IA
@@ -52,7 +52,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           cd server
-          npm test ai.test.js
+          npm test -- ai.test.js
 
   deploy:
     name: Deploy para Homelab

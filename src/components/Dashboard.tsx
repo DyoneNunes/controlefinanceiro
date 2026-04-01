@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { formatCurrency } from '../utils/finance';
 import { calculateInvestmentReturn } from '../utils/investment';
-import { TrendingUp, AlertCircle, CheckCircle, Clock, Wallet, TrendingDown, LineChart, ArrowUpRight, PiggyBank, Shuffle, ChevronLeft, ChevronRight, Calendar, Upload } from 'lucide-react';
+import { TrendingUp, AlertCircle, CheckCircle, Clock, Wallet, TrendingDown, LineChart, ArrowUpRight, PiggyBank, Shuffle, ChevronLeft, ChevronRight, Calendar, Upload, DollarSign } from 'lucide-react';
 import { ChartsSection } from './ChartsSection';
 import { BankImport } from './BankImport';
 import { format, addMonths, subMonths, isSameMonth, isSameYear, parseISO } from 'date-fns';
@@ -13,7 +13,7 @@ const StatCard = ({ title, value, icon: Icon, colorClass, bgClass, subValue, lab
     <div>
       <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
       <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
-      {subValue && <p className="text-xs text-emerald-600 mt-1 flex items-center"><ArrowUpRight className="w-3 h-3 mr-1"/>{subValue}</p>}
+      {subValue && <p className="text-xs text-emerald-600 mt-1 flex items-center"><ArrowUpRight className="w-3 h-3 mr-1" />{subValue}</p>}
       {label && <p className="text-xs text-gray-400 mt-2">{label}</p>}
     </div>
     <div className={`p-3 rounded-xl ${bgClass}`}>
@@ -64,6 +64,10 @@ export const Dashboard = () => {
     const totalCashOutflows = paidTotal + randomTotal;
     const balance = incomeTotal - totalCashOutflows;
 
+    // Dinheiro livre = Receita - Todas as contas fixas do mês (pagas + pendentes + vencidas)
+    const allBillsTotal = paidTotal + pendingTotal + overdueTotal;
+    const dinheiroLivre = incomeTotal - allBillsTotal;
+
     return {
       incomeTotal,
       paidTotal,
@@ -72,6 +76,7 @@ export const Dashboard = () => {
       randomTotal,
       investedTotal,
       balance,
+      dinheiroLivre,
       pendingCount: billsPending.length,
       overdueCount: billsOverdue.length,
       paidCount: billsPaid.length
@@ -97,12 +102,12 @@ export const Dashboard = () => {
   }, [currentDate, bills, incomes, randomExpenses, investments]);
 
   const totalAssets = useMemo(() => {
-      const invested = investments.reduce((sum, i) => sum + Number(i.initialAmount), 0);
-      const yieldVal = investments.reduce((sum, inv) => {
-        const finalAmount = calculateInvestmentReturn(inv.initialAmount, inv.cdiPercent, inv.durationMonths);
-        return sum + (finalAmount - Number(inv.initialAmount));
-      }, 0);
-      return { invested, yieldVal, total: invested + yieldVal };
+    const invested = investments.reduce((sum, i) => sum + Number(i.initialAmount), 0);
+    const yieldVal = investments.reduce((sum, inv) => {
+      const finalAmount = calculateInvestmentReturn(inv.initialAmount, inv.cdiPercent, inv.durationMonths);
+      return sum + (finalAmount - Number(inv.initialAmount));
+    }, 0);
+    return { invested, yieldVal, total: invested + yieldVal };
   }, [investments]);
 
   return (
@@ -138,14 +143,14 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-         <StatCard
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
           title="Saldo do Mês"
           value={formatCurrency(monthlyStats.balance)}
           icon={Wallet}
           colorClass="text-indigo-600"
           bgClass="bg-indigo-50"
-          label="Receitas - Despesas Pagas"
+          label="Receitas - Despesas já pagas"
         />
         <StatCard
           title="Receita Mensal"
@@ -155,13 +160,24 @@ export const Dashboard = () => {
           bgClass="bg-emerald-50"
         />
         <StatCard
-          title="Despesas Pagas"
+          title="Já Pago"
           value={formatCurrency(monthlyStats.paidTotal)}
           icon={TrendingDown}
           colorClass="text-rose-600"
           bgClass="bg-rose-50"
-          label="Contas Fixas Pagas"
+          label="Contas fixas já quitadas"
         />
+        <StatCard
+          title="Dinheiro Livre"
+          value={formatCurrency(monthlyStats.dinheiroLivre)}
+          icon={DollarSign}
+          colorClass={monthlyStats.dinheiroLivre >= 0 ? "text-teal-600" : "text-red-600"}
+          bgClass={monthlyStats.dinheiroLivre >= 0 ? "bg-teal-50" : "bg-red-50"}
+          label="Receita - Todas as contas fixas"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
           title="Gastos Variáveis"
           value={formatCurrency(monthlyStats.randomTotal)}
@@ -170,12 +186,13 @@ export const Dashboard = () => {
           bgClass="bg-amber-50"
         />
         <StatCard
-          title="Contas a Pagar"
+          title="Total a Pagar"
           value={formatCurrency(monthlyStats.pendingTotal + monthlyStats.overdueTotal)}
           icon={Clock}
           colorClass="text-orange-600"
           bgClass="bg-orange-50"
           subValue={monthlyStats.overdueTotal > 0 ? `${formatCurrency(monthlyStats.overdueTotal)} vencido` : undefined}
+          label="Contas pendentes + atrasadas"
         />
         <StatCard
           title="Investido no Mês"
@@ -192,22 +209,22 @@ export const Dashboard = () => {
           Resumo Anual ({format(currentDate, 'yyyy')})
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-           <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
-              <p className="text-emerald-700 text-sm font-semibold">Total Ganho</p>
-              <p className="text-2xl font-bold text-emerald-900">{formatCurrency(yearlyStats.incomeTotal)}</p>
-           </div>
-           <div className="bg-rose-50 rounded-xl p-4 border border-rose-100">
-              <p className="text-rose-700 text-sm font-semibold">Total Gasto</p>
-              <p className="text-2xl font-bold text-rose-900">{formatCurrency(yearlyStats.expenseTotal)}</p>
-           </div>
-           <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
-              <p className="text-purple-700 text-sm font-semibold">Total Aportado</p>
-              <p className="text-2xl font-bold text-purple-900">{formatCurrency(yearlyStats.investedTotal)}</p>
-           </div>
-           <div className={`rounded-xl p-4 border ${yearlyStats.balance >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-red-50 border-red-100'}`}>
-              <p className={`${yearlyStats.balance >= 0 ? 'text-blue-700' : 'text-red-700'} text-sm font-semibold`}>Balanço Anual</p>
-              <p className={`text-2xl font-bold ${yearlyStats.balance >= 0 ? 'text-blue-900' : 'text-red-900'}`}>{formatCurrency(yearlyStats.balance)}</p>
-           </div>
+          <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
+            <p className="text-emerald-700 text-sm font-semibold">Total Ganho</p>
+            <p className="text-2xl font-bold text-emerald-900">{formatCurrency(yearlyStats.incomeTotal)}</p>
+          </div>
+          <div className="bg-rose-50 rounded-xl p-4 border border-rose-100">
+            <p className="text-rose-700 text-sm font-semibold">Total Gasto</p>
+            <p className="text-2xl font-bold text-rose-900">{formatCurrency(yearlyStats.expenseTotal)}</p>
+          </div>
+          <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
+            <p className="text-purple-700 text-sm font-semibold">Total Aportado</p>
+            <p className="text-2xl font-bold text-purple-900">{formatCurrency(yearlyStats.investedTotal)}</p>
+          </div>
+          <div className={`rounded-xl p-4 border ${yearlyStats.balance >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-red-50 border-red-100'}`}>
+            <p className={`${yearlyStats.balance >= 0 ? 'text-blue-700' : 'text-red-700'} text-sm font-semibold`}>Balanço Anual</p>
+            <p className={`text-2xl font-bold ${yearlyStats.balance >= 0 ? 'text-blue-900' : 'text-red-900'}`}>{formatCurrency(yearlyStats.balance)}</p>
+          </div>
         </div>
       </div>
 
@@ -239,21 +256,21 @@ export const Dashboard = () => {
       </div>
 
       <div className="bg-gradient-to-r from-purple-900 to-indigo-900 rounded-2xl p-6 text-white relative overflow-hidden">
-         <div className="relative z-10 flex items-center justify-between">
-            <div>
-               <p className="text-purple-200 font-medium mb-1">Patrimônio Total Acumulado</p>
-               <h3 className="text-3xl font-bold">{formatCurrency(totalAssets.total)}</h3>
-               <p className="text-xs text-purple-300 mt-2">
-                 {formatCurrency(totalAssets.invested)} investidos + {formatCurrency(totalAssets.yieldVal)} rendimento
-               </p>
-            </div>
-            <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
-                <PiggyBank className="w-8 h-8 text-purple-100" />
-            </div>
-         </div>
+        <div className="relative z-10 flex items-center justify-between">
+          <div>
+            <p className="text-purple-200 font-medium mb-1">Patrimônio Total Acumulado</p>
+            <h3 className="text-3xl font-bold">{formatCurrency(totalAssets.total)}</h3>
+            <p className="text-xs text-purple-300 mt-2">
+              {formatCurrency(totalAssets.invested)} investidos + {formatCurrency(totalAssets.yieldVal)} rendimento
+            </p>
+          </div>
+          <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
+            <PiggyBank className="w-8 h-8 text-purple-100" />
+          </div>
+        </div>
       </div>
 
-      <ChartsSection />
+      <ChartsSection monthlyStats={monthlyStats} />
 
       {showImport && <BankImport onClose={() => setShowImport(false)} />}
     </div>

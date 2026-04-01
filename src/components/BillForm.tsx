@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useFinance } from '../context/FinanceContext';
-import { useGroup } from '../context/GroupContext'; // Import useGroup
-import { X } from 'lucide-react';
+import { useGroup } from '../context/GroupContext';
+import { X, Receipt, DollarSign, Calendar, Wallet } from 'lucide-react';
 
 interface BillFormProps {
   onClose: () => void;
@@ -9,106 +9,144 @@ interface BillFormProps {
 
 export const BillForm: React.FC<BillFormProps> = ({ onClose }) => {
   const { addBill } = useFinance();
-  const { groups, currentGroup } = useGroup(); // Use useGroup
+  const { groups, currentGroup } = useGroup();
   const [formData, setFormData] = useState({
     name: '',
     value: '',
     dueDate: ''
   });
-  const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(currentGroup?.id); // State for selected group
+  const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(currentGroup?.id);
 
   useEffect(() => {
-    // Update selectedGroupId if currentGroup changes
     setSelectedGroupId(currentGroup?.id);
   }, [currentGroup]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.value || !formData.dueDate || !selectedGroupId) return; // Ensure group is selected
+    if (!formData.name || !formData.value || !formData.dueDate || !selectedGroupId) return;
 
     addBill({
       name: formData.name,
       value: Number(formData.value),
       dueDate: new Date(formData.dueDate).toISOString(),
-      groupId: selectedGroupId // Pass selected group ID
+      groupId: selectedGroupId
     });
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm transition-all">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl relative animate-in fade-in zoom-in duration-200">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <X className="w-6 h-6" />
-        </button>
+    <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-start justify-center z-50 p-4 pt-6 sm:pt-12 md:pt-20 modal-overlay overflow-y-auto" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl relative modal-panel overflow-hidden max-h-[calc(100vh-3rem)] sm:max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        {/* Accent bar */}
+        <div className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 shrink-0" />
 
-        <h2 className="text-2xl font-bold mb-6 text-gray-900">Nova Conta</h2>
+        {/* Header */}
+        <div className="px-6 pt-5 pb-4 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-100">
+              <Receipt className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Nova Conta</h2>
+              <p className="text-sm text-gray-400">Adicione uma conta fixa</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nome / Descrição</label>
-            <input
-              type="text"
-              required
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              placeholder="Ex: Aluguel"
-              value={formData.name}
-              onChange={e => setFormData({...formData, name: e.target.value})}
-            />
+        {/* Formulário */}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto border-t border-gray-100 p-6 space-y-5">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nome / Descrição</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50/80 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-gray-900 placeholder:text-gray-400"
+                  placeholder="Ex: Aluguel, Luz, Internet..."
+                  value={formData.name}
+                  onChange={e => setFormData({...formData, name: e.target.value})}
+                />
+                <Receipt className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Valor (R$)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    required
+                    step="0.01"
+                    min="0"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50/80 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-gray-900 placeholder:text-gray-400"
+                    placeholder="0,00"
+                    value={formData.value}
+                    onChange={e => setFormData({...formData, value: e.target.value})}
+                  />
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Vencimento</label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    required
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50/80 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-gray-900"
+                    value={formData.dueDate}
+                    onChange={e => setFormData({...formData, dueDate: e.target.value})}
+                  />
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Carteira</label>
+              <div className="relative">
+                <select
+                  required
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50/80 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-gray-900 appearance-none cursor-pointer"
+                  value={selectedGroupId}
+                  onChange={e => setSelectedGroupId(e.target.value)}
+                  disabled={groups.length === 0}
+                >
+                  <option value="">Selecione uma carteira</option>
+                  {groups.map(group => (
+                    <option key={group.id} value={group.id}>{group.name}</option>
+                  ))}
+                </select>
+                <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              </div>
+              {groups.length === 0 && <p className="text-rose-500 text-xs mt-1.5 font-medium">Nenhuma carteira disponível.</p>}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Valor (R$)</label>
-            <input
-              type="number"
-              required
-              step="0.01"
-              min="0"
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              placeholder="0,00"
-              value={formData.value}
-              onChange={e => setFormData({...formData, value: e.target.value})}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Data de Vencimento</label>
-            <input
-              type="date"
-              required
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              value={formData.dueDate}
-              onChange={e => setFormData({...formData, dueDate: e.target.value})}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Grupo</label>
-            <select
-              required
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              value={selectedGroupId}
-              onChange={e => setSelectedGroupId(e.target.value)}
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/80 flex gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3 px-4 rounded-xl border border-gray-200 text-gray-600 font-semibold hover:bg-gray-100 transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100"
               disabled={groups.length === 0}
             >
-              <option value="">Selecione um grupo</option>
-              {groups.map(group => (
-                <option key={group.id} value={group.id}>{group.name}</option>
-              ))}
-            </select>
-            {groups.length === 0 && <p className="text-red-500 text-xs mt-1">Nenhum grupo disponível. Crie um grupo primeiro.</p>}
+              Adicionar Conta
+            </button>
           </div>
-
-          <button
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors mt-4"
-            disabled={groups.length === 0}
-          >
-            Adicionar Conta
-          </button>
         </form>
       </div>
     </div>

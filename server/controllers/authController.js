@@ -1,3 +1,7 @@
+const pool = require('../config/db');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
 const JWT_SECRET = process.env.JWT_SECRET;
 
 exports.register = async (req, res) => {
@@ -77,6 +81,11 @@ exports.getGroups = async (req, res) => {
 exports.createGroup = async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Name required' });
+
+    // Verify user still exists in database
+    const userCheck = await pool.query('SELECT id FROM users WHERE id = $1', [req.user.id]);
+    if (userCheck.rows.length === 0) return res.status(401).json({ error: 'Sessão inválida. Faça login novamente.' });
+
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
@@ -111,19 +120,26 @@ exports.inviteUser = async (req, res) => {
 
 exports.updateGroup = async (req, res) => {
     const { name } = req.body;
-    const { id: groupId } = req.params;
-    if (!name) return res.status(400).json({ error: 'Name required' });
+    if (!name) return res.status(400).json({ error: 'Nome do grupo é obrigatório' });
+    if (req.group.role !== 'admin') return res.status(403).json({ error: 'Apenas administradores podem editar o grupo' });
 
     try {
-        await pool.query('UPDATE finance_groups SET name = $1 WHERE id = $2', [name, groupId]);
+        await pool.query('UPDATE finance_groups SET name = $1 WHERE id = $2', [name, req.group.id]);
         res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) {
+        console.error('Error updating group:', err);
+        res.status(500).json({ error: 'Erro ao atualizar grupo' });
+    }
 };
 
 exports.deleteGroup = async (req, res) => {
-    const { id: groupId } = req.params;
+    if (req.group.role !== 'admin') return res.status(403).json({ error: 'Apenas administradores podem excluir o grupo' });
+
     try {
-        await pool.query('DELETE FROM finance_groups WHERE id = $1', [groupId]);
+        await pool.query('DELETE FROM finance_groups WHERE id = $1', [req.group.id]);
         res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) {
+        console.error('Error deleting group:', err);
+        res.status(500).json({ error: 'Erro ao excluir grupo' });
+    }
 };

@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const bcrypt = require('bcryptjs');
 const pool = require('./config/db');
 require('dotenv').config({ override: true });
 
@@ -16,18 +15,12 @@ if (!process.env.JWT_SECRET) {
 // Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
-  origin: true,
+  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Group-ID']
 }));
 app.use(express.json());
-
-// Start DB
-pool.query('SELECT NOW()', (err) => {
-  if (err) console.error('Error connecting to database:', err);
-  else console.log('Connected to PostgreSQL database');
-});
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
