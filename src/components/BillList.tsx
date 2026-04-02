@@ -84,64 +84,85 @@ export const BillList = () => {
             <p className="text-sm">Tente mudar o filtro ou adicione uma nova conta.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 border-b border-gray-100">
-                <tr>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-600">Descrição</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-600">Grupo</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-600">Vencimento</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-600">Valor</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-600">Status</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredBills.map(bill => (
-                  <tr key={bill.id} className="hover:bg-gray-50/50 transition-colors group">
-                    <td className="px-6 py-4 font-medium text-gray-900">{bill.name}</td>
-                    <td className="px-6 py-4 text-gray-600">{getGroupName(bill.groupId)}</td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {format(parseISO(bill.dueDate), 'dd/MM/yyyy')}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-900">
-                      {formatCurrency(bill.value)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(bill.status)}`}>
-                        {getStatusLabel(bill.status)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {bill.status !== 'paid' && (
-                          <button
-                            onClick={() => markAsPaid(bill.id)}
-                            title="Marcar como Pago"
-                            className="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => {
-                            if (window.confirm('Tem certeza que deseja excluir esta conta?')) {
-                              deleteBill(bill.id);
-                            }
-                          }}
-                          title="Excluir"
-                          className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
+          <>
+            {/* Mobile: cards */}
+            <div className="md:hidden divide-y divide-gray-100">
+              {filteredBills.map(bill => (
+                <div key={bill.id} className="p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-gray-900 truncate mr-2">{bill.name}</span>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border shrink-0 ${getStatusColor(bill.status)}`}>
+                      {getStatusLabel(bill.status)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">{getGroupName(bill.groupId)}</span>
+                    <span className="text-gray-500">{format(parseISO(bill.dueDate), 'dd/MM/yyyy')}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-900">{formatCurrency(bill.value)}</span>
+                    <div className="flex items-center gap-2">
+                      {bill.status !== 'paid' && (
+                        <button onClick={() => markAsPaid(bill.id)} title="Marcar como Pago" className="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
+                          <Check className="w-4 h-4" />
                         </button>
-                      </div>
-                    </td>
+                      )}
+                      <button onClick={() => { if (window.confirm('Tem certeza que deseja excluir esta conta?')) deleteBill(bill.id); }} title="Excluir" className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop: table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-600">Descrição</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-600">Grupo</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-600">Vencimento</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-600">Valor</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-600">Status</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-right">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredBills.map(bill => (
+                    <tr key={bill.id} className="hover:bg-gray-50/50 transition-colors group">
+                      <td className="px-6 py-4 font-medium text-gray-900">{bill.name}</td>
+                      <td className="px-6 py-4 text-gray-600">{getGroupName(bill.groupId)}</td>
+                      <td className="px-6 py-4 text-gray-600">
+                        {format(parseISO(bill.dueDate), 'dd/MM/yyyy')}
+                      </td>
+                      <td className="px-6 py-4 font-medium text-gray-900">
+                        {formatCurrency(bill.value)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(bill.status)}`}>
+                          {getStatusLabel(bill.status)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right space-x-2">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {bill.status !== 'paid' && (
+                            <button onClick={() => markAsPaid(bill.id)} title="Marcar como Pago" className="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
+                              <Check className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button onClick={() => { if (window.confirm('Tem certeza que deseja excluir esta conta?')) deleteBill(bill.id); }} title="Excluir" className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

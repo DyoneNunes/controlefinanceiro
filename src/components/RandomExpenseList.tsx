@@ -42,48 +42,64 @@ export const RandomExpenseList = () => {
             <p className="text-sm">Adicione um novo gasto para começar.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 border-b border-gray-100">
-                <tr>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-600">Descrição</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-600">Grupo</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-600">Data</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-600">Valor</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {randomExpenses.map(expense => (
-                  <tr key={expense.id} className="hover:bg-gray-50/50 transition-colors group">
-                    <td className="px-6 py-4 font-medium text-gray-900">{expense.name}</td>
-                    <td className="px-6 py-4 text-gray-600">{getGroupName(expense.groupId)}</td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {format(parseISO(expense.date), 'dd/MM/yyyy')}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-900">
-                      {formatCurrency(expense.value)}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => {
-                            if (window.confirm('Tem certeza que deseja excluir este gasto?')) {
-                              deleteRandomExpense(expense.id);
-                            }
-                          }}
-                          title="Excluir"
-                          className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+          <>
+            {/* Mobile: cards */}
+            <div className="md:hidden divide-y divide-gray-100">
+              {randomExpenses.map(expense => (
+                <div key={expense.id} className="p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-gray-900 truncate mr-2">{expense.name}</span>
+                    <span className="text-sm text-gray-500 shrink-0">{format(parseISO(expense.date), 'dd/MM/yyyy')}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">{getGroupName(expense.groupId)}</span>
+                    <span className="font-semibold text-gray-900">{formatCurrency(expense.value)}</span>
+                  </div>
+                  <div className="flex justify-end">
+                    <button onClick={() => { if (window.confirm('Tem certeza que deseja excluir este gasto?')) deleteRandomExpense(expense.id); }} title="Excluir" className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop: table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-600">Descrição</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-600">Grupo</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-600">Data</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-600">Valor</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-right">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {randomExpenses.map(expense => (
+                    <tr key={expense.id} className="hover:bg-gray-50/50 transition-colors group">
+                      <td className="px-6 py-4 font-medium text-gray-900">{expense.name}</td>
+                      <td className="px-6 py-4 text-gray-600">{getGroupName(expense.groupId)}</td>
+                      <td className="px-6 py-4 text-gray-600">
+                        {format(parseISO(expense.date), 'dd/MM/yyyy')}
+                      </td>
+                      <td className="px-6 py-4 font-medium text-gray-900">
+                        {formatCurrency(expense.value)}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => { if (window.confirm('Tem certeza que deseja excluir este gasto?')) deleteRandomExpense(expense.id); }} title="Excluir" className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

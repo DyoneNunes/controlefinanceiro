@@ -1,6 +1,6 @@
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
-require('dotenv').config({ path: '../../.env' }); // Adjust path if needed
+require('dotenv').config({ path: require('path').resolve(__dirname, '..', '.env') });
 
 const pool = new Pool({
   user: process.env.POSTGRES_USER,
@@ -11,8 +11,8 @@ const pool = new Pool({
 });
 
 async function createUser() {
-  const username = 'Quilombus';
-  const passwordRaw = 'Quilombus2026@'; // Assumed intended password sans typo
+  const username = 'julia.ferreira';
+  const passwordRaw = '1808ajfS.';
   
   try {
     const hash = await bcrypt.hash(passwordRaw, 10);
@@ -28,7 +28,7 @@ async function createUser() {
     const userId = res.rows[0].id;
     const groupRes = await pool.query(
         `INSERT INTO finance_groups (name) VALUES ($1) RETURNING id`,
-        ['Finanças de ' + username]
+        ['Finanças de Ana Julia']
     );
     const groupId = groupRes.rows[0].id;
     
@@ -37,7 +37,7 @@ async function createUser() {
          ON CONFLICT DO NOTHING`,
         [groupId, userId]
     );
-    console.log('Personal group created for Quilombus');
+    console.log('Personal group created for Ana Julia');
 
   } catch (err) {
     console.error('Error creating user:', err);

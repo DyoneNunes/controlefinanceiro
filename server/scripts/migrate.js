@@ -4,8 +4,7 @@ const { Pool } = require('pg');
 const dotenv = require('dotenv');
 
 // Load env vars
-const envPath = path.resolve(__dirname, '../../.env'); 
-dotenv.config({ path: envPath });
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 // Override HOST for local execution (outside container)
 process.env.POSTGRES_HOST = 'localhost';
