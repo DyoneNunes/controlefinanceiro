@@ -8,6 +8,7 @@ router.use(requireGroupAccess);
 
 router.get('/', billController.getBills);
 router.post('/', billController.createBill);
+router.put('/:id', billController.updateBill); // E2EE update + ownership validation
 router.delete('/:id', billController.deleteBill);
 router.patch('/:id/pay', billController.payBill);
 

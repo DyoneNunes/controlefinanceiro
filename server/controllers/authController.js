@@ -71,6 +71,26 @@ exports.validate = (req, res) => {
     res.json({ valid: true, username: req.user.username });
 };
 
+exports.resetPassword = async (req, res) => {
+    const { token, password } = req.body;
+    if (!token || !password || password.trim().length < 4)
+        return res.status(400).json({ error: 'Token e senha são obrigatórios (mínimo 4 caracteres)' });
+    try {
+        const tokenRes = await pool.query(
+            'SELECT * FROM password_reset_tokens WHERE token = $1 AND used = FALSE AND expires_at > NOW()',
+            [token]
+        );
+        if (tokenRes.rows.length === 0)
+            return res.status(400).json({ error: 'Link inválido ou expirado.' });
+
+        const { user_id } = tokenRes.rows[0];
+        const hash = await bcrypt.hash(password.trim(), 10);
+        await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, user_id]);
+        await pool.query('UPDATE password_reset_tokens SET used = TRUE WHERE token = $1', [token]);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
 exports.getGroups = async (req, res) => {
     try {
         const { rows } = await pool.query('SELECT g.id, g.name, gm.role FROM finance_groups g JOIN group_members gm ON g.id = gm.group_id WHERE gm.user_id = $1 ORDER BY gm.joined_at ASC', [req.user.id]);
@@ -130,6 +150,63 @@ exports.updateGroup = async (req, res) => {
         console.error('Error updating group:', err);
         res.status(500).json({ error: 'Erro ao atualizar grupo' });
     }
+};
+
+// ---- USER MANAGEMENT (admin only) ----
+
+exports.listUsers = async (req, res) => {
+    try {
+        const { rows } = await pool.query(
+            `SELECT u.id, u.username, u.created_at,
+                (SELECT COUNT(*) FROM group_members gm WHERE gm.user_id = u.id) AS group_count
+             FROM users u ORDER BY u.created_at ASC`
+        );
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.adminCreateUser = async (req, res) => {
+    let { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Usuário e senha são obrigatórios' });
+    username = username.trim().toLowerCase();
+    password = password.trim();
+    if (password.length < 4) return res.status(400).json({ error: 'Senha deve ter pelo menos 4 caracteres' });
+    try {
+        const check = await pool.query('SELECT id FROM users WHERE LOWER(username) = $1', [username]);
+        if (check.rows.length > 0) return res.status(400).json({ error: 'Usuário já existe' });
+        const hash = await bcrypt.hash(password, 10);
+        const result = await pool.query(
+            'INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username, created_at',
+            [username, hash]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.adminResetPassword = async (req, res) => {
+    const { id } = req.params;
+    const { password } = req.body;
+    if (!password || password.trim().length < 4) return res.status(400).json({ error: 'Senha deve ter pelo menos 4 caracteres' });
+    try {
+        const hash = await bcrypt.hash(password.trim(), 10);
+        const result = await pool.query(
+            'UPDATE users SET password_hash = $1 WHERE id = $2 RETURNING id',
+            [hash, id]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Usuário não encontrado' });
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.adminDeleteUser = async (req, res) => {
+    const { id } = req.params;
+    // Prevent self-deletion
+    if (id === req.user.id) return res.status(400).json({ error: 'Você não pode excluir seu próprio usuário' });
+    try {
+        const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Usuário não encontrado' });
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 exports.deleteGroup = async (req, res) => {

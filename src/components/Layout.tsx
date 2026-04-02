@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Receipt, TrendingUp, LineChart, LogOut, User, Shuffle, Bot, Plus, UserPlus, Menu, X, ChevronDown, Check } from 'lucide-react';
+import { LayoutDashboard, Receipt, TrendingUp, LineChart, LogOut, User, Shuffle, Bot, Plus, UserPlus, Menu, X, ChevronDown, Check, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGroup } from '../context/GroupContext';
 import clsx from 'clsx';
@@ -19,6 +19,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const { currentGroup, createGroup, inviteUser, selectGroup, loading: groupLoading, groups } = useGroup();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isWalletDropdownOpen, setIsWalletDropdownOpen] = useState(false);
   const walletDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -163,8 +164,57 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   return (
     <div className="flex min-h-screen bg-gray-50 text-gray-900 font-sans">
       {/* Desktop Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col fixed h-full z-10 transition-all overflow-y-auto">
-        <SidebarContent />
+      <aside className={clsx(
+        "bg-white border-r border-gray-200 hidden md:flex flex-col fixed h-full z-10 transition-all duration-300 overflow-y-auto",
+        isSidebarCollapsed ? "w-16" : "w-64"
+      )}>
+        {isSidebarCollapsed ? (
+          <div className="flex flex-col items-center py-4 space-y-4 h-full">
+            <button
+              onClick={() => setIsSidebarCollapsed(false)}
+              className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"
+              title="Expandir menu"
+            >
+              <PanelLeftOpen className="w-5 h-5" />
+            </button>
+            <nav className="flex-1 flex flex-col items-center space-y-2 pt-4">
+              {navItems.map(({ to, icon: Icon, activeClass, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={to === '/'}
+                  title={label}
+                  className={({ isActive }) => clsx(
+                    "p-3 rounded-lg transition-colors",
+                    isActive ? activeClass : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  )}
+                >
+                  <Icon className="w-5 h-5" />
+                </NavLink>
+              ))}
+            </nav>
+            <button
+              onClick={() => { handleLogout(); }}
+              className="p-3 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+              title="Sair do Sistema"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="absolute top-4 right-2 z-20">
+              <button
+                onClick={() => setIsSidebarCollapsed(true)}
+                className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+                title="Recolher menu"
+              >
+                <PanelLeftClose className="w-4 h-4" />
+              </button>
+            </div>
+            <SidebarContent />
+          </>
+        )}
       </aside>
 
       {/* Mobile Header */}
@@ -193,7 +243,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </div>
       )}
 
-      <main className="flex-1 md:ml-64 p-4 md:p-8 min-h-screen pt-16 md:pt-8">
+      <main className={clsx("flex-1 p-4 md:p-8 min-h-screen pt-16 md:pt-8 transition-all duration-300", isSidebarCollapsed ? "md:ml-16" : "md:ml-64")}>
         <div className="max-w-5xl mx-auto">
           {children}
         </div>

@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { CryptoProvider } from './context/CryptoContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { FinanceProvider } from './context/FinanceContext';
 import { GroupProvider } from './context/GroupContext';
@@ -14,6 +15,8 @@ import { InvestmentList } from './components/InvestmentList';
 import { RandomExpenseForm } from './components/RandomExpenseForm';
 import { RandomExpenseList } from './components/RandomExpenseList';
 import { AIAdvisor } from './components/AIAdvisor';
+import { AdminPanel } from './components/AdminPanel';
+import { ResetPassword } from './components/ResetPassword';
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -32,9 +35,10 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <GroupProvider>
-          <FinanceProvider>
+      <CryptoProvider>
+        <AuthProvider>
+          <GroupProvider>
+            <FinanceProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/" element={
@@ -107,10 +111,13 @@ function App() {
                   </Layout>
                 </PrivateRoute>
               } />
+              <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
             </Routes>
-          </FinanceProvider>
-        </GroupProvider>
-      </AuthProvider>
+            </FinanceProvider>
+          </GroupProvider>
+        </AuthProvider>
+      </CryptoProvider>
     </Router>
   );
 }
