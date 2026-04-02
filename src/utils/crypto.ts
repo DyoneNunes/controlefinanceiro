@@ -71,12 +71,12 @@ const AES_KEY_LENGTH = 256;
 // ============================================================================
 
 /**
- * Converte ArrayBuffer para string Base64.
+ * Converte ArrayBuffer ou Uint8Array para string Base64.
  * Base64 é usado para serializar dados binários em formato texto,
  * permitindo armazenamento e transporte via JSON/HTTP.
  */
-export function bufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
+export function bufferToBase64(buffer: ArrayBuffer | Uint8Array): string {
+  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
   let binary = '';
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
@@ -84,23 +84,23 @@ export function bufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-/** Converte string Base64 de volta para ArrayBuffer */
-export function base64ToBuffer(base64: string): ArrayBuffer {
+/** Converte string Base64 de volta para Uint8Array */
+export function base64ToUint8Array(base64: string): Uint8Array {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
-  return bytes.buffer;
+  return bytes;
 }
 
-/** Codifica string UTF-8 para ArrayBuffer (para criptografia) */
-function encode(text: string): ArrayBuffer {
-  return new TextEncoder().encode(text).buffer;
+/** Codifica string UTF-8 para Uint8Array (para criptografia) */
+function encode(text: string): Uint8Array {
+  return new TextEncoder().encode(text);
 }
 
-/** Decodifica ArrayBuffer para string UTF-8 (após descriptografia) */
-function decode(buffer: ArrayBuffer): string {
+/** Decodifica ArrayBuffer/Uint8Array para string UTF-8 (após descriptografia) */
+function decode(buffer: ArrayBuffer | Uint8Array): string {
   return new TextDecoder().decode(buffer);
 }
 
@@ -159,18 +159,18 @@ export async function deriveKey(
   // 'raw' = bytes UTF-8 da senha, sem processamento
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
-    encode(password),
+    encode(password) as BufferSource,
     { name: 'PBKDF2' },
     false, // não exportável
     ['deriveKey'] // só pode derivar chaves
   );
 
   // Passo 2: Deriva a chave AES-256-GCM via PBKDF2
-  const salt = base64ToBuffer(saltBase64);
+  const salt = base64ToUint8Array(saltBase64);
   const derivedKey = await crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: salt,
+      salt: salt as BufferSource,
       iterations: PBKDF2_ITERATIONS,
       hash: 'SHA-256',
     },
@@ -240,7 +240,7 @@ export async function wrapMasterKey(
 
   return {
     wrappedKey: bufferToBase64(wrappedKeyBuffer),
-    iv: bufferToBase64(iv.buffer),
+    iv: bufferToBase64(iv),
   };
 }
 
@@ -263,14 +263,14 @@ export async function unwrapMasterKey(
   ivBase64: string,
   dek: CryptoKey
 ): Promise<CryptoKey> {
-  const wrappedKey = base64ToBuffer(wrappedKeyBase64);
-  const iv = base64ToBuffer(ivBase64);
+  const wrappedKey = base64ToUint8Array(wrappedKeyBase64);
+  const iv = base64ToUint8Array(ivBase64);
 
   return crypto.subtle.unwrapKey(
     'raw',
-    wrappedKey,
+    wrappedKey as BufferSource,
     dek,
-    { name: 'AES-GCM', iv },
+    { name: 'AES-GCM', iv: iv as BufferSource },
     { name: 'AES-GCM', length: AES_KEY_LENGTH },
     true, // exportável (para re-wrap se a senha mudar)
     ['encrypt', 'decrypt']
@@ -331,14 +331,14 @@ export async function encryptData(
   // Criptografa com AES-256-GCM
   // O resultado inclui automaticamente o authentication tag (16 bytes)
   const ciphertext = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
+    { name: 'AES-GCM', iv: iv as BufferSource },
     key,
-    encodedData
+    encodedData as BufferSource
   );
 
   return {
     ciphertext: bufferToBase64(ciphertext),
-    iv: bufferToBase64(iv.buffer),
+    iv: bufferToBase64(iv),
   };
 }
 
@@ -364,15 +364,15 @@ export async function decryptData<T = unknown>(
   ivBase64: string,
   key: CryptoKey
 ): Promise<T> {
-  const ciphertext = base64ToBuffer(ciphertextBase64);
-  const iv = base64ToBuffer(ivBase64);
+  const ciphertext = base64ToUint8Array(ciphertextBase64);
+  const iv = base64ToUint8Array(ivBase64);
 
   // Descriptografa e verifica integridade automaticamente
   // Se o tag não bater → DOMException: The operation failed
   const plaintext = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv },
+    { name: 'AES-GCM', iv: iv as BufferSource },
     key,
-    ciphertext
+    ciphertext as BufferSource
   );
 
   // Decodifica bytes para string e faz parse do JSON

@@ -23,7 +23,7 @@ import {
   encryptData,
   decryptData,
   bufferToBase64,
-  base64ToBuffer,
+  base64ToUint8Array,
 } from './crypto';
 
 describe('E2EE Crypto Module', () => {
@@ -34,16 +34,16 @@ describe('E2EE Crypto Module', () => {
   describe('Base64 encoding/decoding', () => {
     it('deve converter ArrayBuffer para Base64 e vice-versa', () => {
       const original = new Uint8Array([72, 101, 108, 108, 111]); // "Hello"
-      const base64 = bufferToBase64(original.buffer);
-      const decoded = new Uint8Array(base64ToBuffer(base64));
+      const base64 = bufferToBase64(original);
+      const decoded = base64ToUint8Array(base64);
 
       expect(decoded).toEqual(original);
     });
 
     it('deve lidar com dados binários arbitrários', () => {
       const original = crypto.getRandomValues(new Uint8Array(256));
-      const base64 = bufferToBase64(original.buffer);
-      const decoded = new Uint8Array(base64ToBuffer(base64));
+      const base64 = bufferToBase64(original);
+      const decoded = base64ToUint8Array(base64);
 
       expect(decoded).toEqual(original);
     });
@@ -68,8 +68,8 @@ describe('E2EE Crypto Module', () => {
 
     it('deve gerar salt de 16 bytes (decodificado)', () => {
       const salt = generateSalt();
-      const buffer = base64ToBuffer(salt);
-      expect(new Uint8Array(buffer).length).toBe(16);
+      const buffer = base64ToUint8Array(salt);
+      expect(buffer.length).toBe(16);
     });
   });
 
