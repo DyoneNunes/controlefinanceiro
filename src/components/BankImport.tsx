@@ -46,7 +46,7 @@ export const BankImport = ({ onClose }: { onClose: () => void }) => {
     formData.append('file', file);
 
     try {
-      const response = await fetch(`${API_URL}/import/ofx`, {
+      const response = await fetch(`${API_URL}/ai/import/ofx`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -94,7 +94,7 @@ export const BankImport = ({ onClose }: { onClose: () => void }) => {
     setLoading(true);
     
     try {
-      const response = await fetch(`${API_URL}/import/confirm`, {
+      const response = await fetch(`${API_URL}/ai/import/confirm`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

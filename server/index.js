@@ -22,6 +22,18 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// ROTA PÚBLICA - no topo, antes de qualquer middleware
+app.get('/api/config/gemini', (req, res) => {
+    const { getModelConfig } = require('./config/geminiConfig');
+    const config = getModelConfig();
+    res.json({
+        model: config.model,
+        planType: config.planType,
+        availableModels: config.availableModels,
+        defaults: config.defaults
+    });
+});
+
 // Routes
 const authRoutes = require('./routes/authRoutes');
 const billRoutes = require('./routes/billRoutes');
@@ -29,15 +41,20 @@ const financeRoutes = require('./routes/financeRoutes');
 const encryptionRoutes = require('./routes/encryptionRoutes');
 const aiImportRoutes = require('./routes/aiImportRoutes');
 
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/encryption', encryptionRoutes);
+app.use('/api/bills', billRoutes);
+app.use('/api/ai', aiImportRoutes);
+app.use('/api', financeRoutes);
+
 app.use('/public', express.static(require('path').join(__dirname, 'public')));
 app.get('/', (req, res) => { res.send('API is running (Modular + E2EE).'); });
 
-app.use('/api/auth', authRoutes);
-app.use('/api/admin', require('./routes/adminRoutes'));
-app.use('/api/encryption', encryptionRoutes); // E2EE key management (per-user, no group required)
-app.use('/api/bills', billRoutes);
-app.use('/api', financeRoutes); // incomes, investments, random-expenses
-app.use('/api', aiImportRoutes); // Advisor and Import endpoints — must be last (has global auth middleware)
+app.use((err, req, res, next) => {
+  console.error('Error:', err.message);
+  res.status(500).json({ error: err.message });
+});
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server running on port ${port}`);

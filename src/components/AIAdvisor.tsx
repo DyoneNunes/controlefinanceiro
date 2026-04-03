@@ -40,7 +40,7 @@ export const AIAdvisor = () => {
     setAdvice(null); 
     try {
       const token = localStorage.getItem('finance_token');
-      const res = await fetch(`${API_URL}/advisor`, {
+      const res = await fetch(`${API_URL}/ai/advisor`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ export const AIAdvisor = () => {
     setHistoryLoading(true);
     try {
       const token = localStorage.getItem('finance_token');
-      const res = await fetch(`${API_URL}/advisor/history`, {
+      const res = await fetch(`${API_URL}/ai/advisor/history`, {
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
           'X-Group-ID': group.id
@@ -98,7 +98,7 @@ export const AIAdvisor = () => {
     setError(null);
     try {
       const token = localStorage.getItem('finance_token');
-      const res = await fetch(`${API_URL}/advisor/history/${id}`, {
+      const res = await fetch(`${API_URL}/ai/advisor/history/${id}`, {
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
           'X-Group-ID': currentGroup.id

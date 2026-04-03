@@ -5,16 +5,13 @@ const { authenticateToken, requireGroupAccess } = require('../middleware/authMid
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.use(authenticateToken);
-router.use(requireGroupAccess);
+// AI Advisor (with auth)
+router.post('/advisor', authenticateToken, requireGroupAccess, aiImportController.getAdvice);
+router.get('/advisor/history', authenticateToken, requireGroupAccess, aiImportController.getAdvisorHistory);
+router.get('/advisor/history/:id', authenticateToken, requireGroupAccess, aiImportController.getAdvisorHistoryDetail);
 
-// AI Advisor
-router.post('/advisor', aiImportController.getAdvice);
-router.get('/advisor/history', aiImportController.getAdvisorHistory);
-router.get('/advisor/history/:id', aiImportController.getAdvisorHistoryDetail);
-
-// Import
-router.post('/import/ofx', upload.single('file'), aiImportController.importOfxPdf);
-router.post('/import/confirm', aiImportController.confirmImport);
+// Import (with auth)
+router.post('/import/ofx', authenticateToken, requireGroupAccess, upload.single('file'), aiImportController.importOfxPdf);
+router.post('/import/confirm', authenticateToken, requireGroupAccess, aiImportController.confirmImport);
 
 module.exports = router;

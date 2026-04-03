@@ -1,11 +1,14 @@
 const pool = require('../config/db');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { createClient } = require('redis');
 const crypto = require('crypto');
 const ofx = require('node-ofx-parser');
 const pdfParse = require('pdf-parse');
+const { createGenerativeModel } = require('../config/geminiConfig');
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const { client: genAI, model: activeModel } = createGenerativeModel(
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_MODEL
+);
 
 const redisClient = createClient({
     url: process.env.REDIS_URL || 'redis://localhost:6379'
@@ -67,7 +70,7 @@ exports.getAdvice = async (req, res) => {
         console.log(`🐢 Cache MISS for advisor. Generating new with Gemini...`);
 
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash", // Use stable model
+            model: activeModel,
             generationConfig: { response_mime_type: "application/json" }
         });
 
@@ -92,7 +95,7 @@ exports.getAdvice = async (req, res) => {
     `;
 
         const result = await model.generateContent(prompt);
-        const text = (await result.response).text();
+        const text = result.response.text();
         const parsedAdvice = JSON.parse(text);
 
         // Save to history
@@ -154,10 +157,10 @@ exports.importOfxPdf = async (req, res) => {
                 const data = await pdfParse(req.file.buffer);
                 const textContent = data.text;
 
-                const model = genAI.getGenerativeModel({
-                    model: "gemini-2.0-flash",
-                    generationConfig: { response_mime_type: "application/json" }
-                });
+            const model = genAI.getGenerativeModel({
+                model: activeModel,
+                generationConfig: { response_mime_type: "application/json" }
+            });
                 const prompt = `
           Atue como um parser de extratos bancários. Analise o texto bruto abaixo extraído de um PDF e identifique as transações individuais.
           Regras de Saída: APENAS um JSON Array válido.
@@ -166,7 +169,7 @@ exports.importOfxPdf = async (req, res) => {
         `;
 
                 const result = await model.generateContent(prompt);
-                let responseText = await result.response.text();
+                let responseText = result.response.text();
                 responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
                 const aiTransactions = JSON.parse(responseText);
 

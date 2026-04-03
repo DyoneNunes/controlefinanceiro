@@ -5,10 +5,12 @@ import { calculateInvestmentReturn } from '../utils/investment';
 import { TrendingUp, AlertCircle, CheckCircle, Clock, Wallet, TrendingDown, LineChart, ArrowUpRight, PiggyBank, Shuffle, ChevronLeft, ChevronRight, Calendar, Upload, DollarSign } from 'lucide-react';
 import { ChartsSection } from './ChartsSection';
 import { BankImport } from './BankImport';
+import { DashboardCardModal } from './DashboardCardModal';
+import type { ModalType } from './DashboardCardModal';
 import { format, addMonths, subMonths, isSameMonth, isSameYear, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const StatCard = ({ title, value, icon: Icon, colorClass, bgClass, subValue, label }: any) => (
+const StatCard = ({ title, value, icon: Icon, colorClass, bgClass, subValue, label, onIconClick }: any) => (
   <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start justify-between hover:shadow-md transition-shadow">
     <div>
       <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
@@ -16,9 +18,13 @@ const StatCard = ({ title, value, icon: Icon, colorClass, bgClass, subValue, lab
       {subValue && <p className="text-xs text-emerald-600 mt-1 flex items-center"><ArrowUpRight className="w-3 h-3 mr-1" />{subValue}</p>}
       {label && <p className="text-xs text-gray-400 mt-2">{label}</p>}
     </div>
-    <div className={`p-3 rounded-xl ${bgClass}`}>
+    <button
+      onClick={onIconClick}
+      title={`Ver detalhes: ${title}`}
+      className={`p-3 rounded-xl ${bgClass} hover:opacity-75 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-300 cursor-pointer`}
+    >
       <Icon className={`w-6 h-6 ${colorClass}`} />
-    </div>
+    </button>
   </div>
 );
 
@@ -26,6 +32,7 @@ export const Dashboard = () => {
   const { bills, incomes, randomExpenses, investments } = useFinance();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showImport, setShowImport] = useState(false);
+  const [activeModal, setActiveModal] = useState<ModalType | null>(null);
 
   const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
   const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
@@ -79,7 +86,13 @@ export const Dashboard = () => {
       dinheiroLivre,
       pendingCount: billsPending.length,
       overdueCount: billsOverdue.length,
-      paidCount: billsPaid.length
+      paidCount: billsPaid.length,
+      incomeItems: incomes.filter(i => isCurrentMonth(i.date)),
+      paidBills: billsPaid,
+      pendingBills: billsPending,
+      overdueBills: billsOverdue,
+      randomItems: randomExpenses.filter(r => isCurrentMonth(r.date)),
+      investmentItems: investments.filter(i => isCurrentMonth(i.startDate)),
     };
   }, [currentDate, bills, incomes, randomExpenses, investments]);
 
@@ -151,6 +164,7 @@ export const Dashboard = () => {
           colorClass="text-indigo-600"
           bgClass="bg-indigo-50"
           label="Receitas - Despesas já pagas"
+          onIconClick={() => setActiveModal('balance')}
         />
         <StatCard
           title="Receita Mensal"
@@ -158,6 +172,7 @@ export const Dashboard = () => {
           icon={TrendingUp}
           colorClass="text-emerald-600"
           bgClass="bg-emerald-50"
+          onIconClick={() => setActiveModal('income')}
         />
         <StatCard
           title="Já Pago"
@@ -166,6 +181,7 @@ export const Dashboard = () => {
           colorClass="text-rose-600"
           bgClass="bg-rose-50"
           label="Contas fixas já quitadas"
+          onIconClick={() => setActiveModal('paid')}
         />
         <StatCard
           title="Dinheiro Livre"
@@ -174,6 +190,7 @@ export const Dashboard = () => {
           colorClass={monthlyStats.dinheiroLivre >= 0 ? "text-teal-600" : "text-red-600"}
           bgClass={monthlyStats.dinheiroLivre >= 0 ? "bg-teal-50" : "bg-red-50"}
           label="Receita - Todas as contas fixas"
+          onIconClick={() => setActiveModal('freeMoney')}
         />
       </div>
 
@@ -184,6 +201,7 @@ export const Dashboard = () => {
           icon={Shuffle}
           colorClass="text-amber-600"
           bgClass="bg-amber-50"
+          onIconClick={() => setActiveModal('variable')}
         />
         <StatCard
           title="Total a Pagar"
@@ -193,6 +211,7 @@ export const Dashboard = () => {
           bgClass="bg-orange-50"
           subValue={monthlyStats.overdueTotal > 0 ? `${formatCurrency(monthlyStats.overdueTotal)} vencido` : undefined}
           label="Contas pendentes + atrasadas"
+          onIconClick={() => setActiveModal('topay')}
         />
         <StatCard
           title="Investido no Mês"
@@ -200,6 +219,7 @@ export const Dashboard = () => {
           icon={LineChart}
           colorClass="text-purple-600"
           bgClass="bg-purple-50"
+          onIconClick={() => setActiveModal('invested')}
         />
       </div>
 
@@ -237,6 +257,7 @@ export const Dashboard = () => {
             icon={Clock}
             colorClass="text-amber-600"
             bgClass="bg-amber-50"
+            onIconClick={() => setActiveModal('pending')}
           />
           <StatCard
             title="Atrasadas"
@@ -244,6 +265,7 @@ export const Dashboard = () => {
             icon={AlertCircle}
             colorClass="text-rose-600"
             bgClass="bg-rose-50"
+            onIconClick={() => setActiveModal('overdue')}
           />
           <StatCard
             title="Pagas"
@@ -251,6 +273,7 @@ export const Dashboard = () => {
             icon={CheckCircle}
             colorClass="text-blue-600"
             bgClass="bg-blue-50"
+            onIconClick={() => setActiveModal('paidCount')}
           />
         </div>
       </div>
@@ -273,6 +296,14 @@ export const Dashboard = () => {
       <ChartsSection monthlyStats={monthlyStats} />
 
       {showImport && <BankImport onClose={() => setShowImport(false)} />}
+
+      {activeModal && (
+        <DashboardCardModal
+          type={activeModal}
+          onClose={() => setActiveModal(null)}
+          monthlyStats={monthlyStats}
+        />
+      )}
     </div>
   );
 };
