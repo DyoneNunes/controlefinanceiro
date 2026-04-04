@@ -17,6 +17,7 @@ import { RandomExpenseList } from './components/RandomExpenseList';
 import { AIAdvisor } from './components/AIAdvisor';
 import { AdminPanel } from './components/AdminPanel';
 import { ResetPassword } from './components/ResetPassword';
+import { FeedbackChat } from './components/FeedbackChat';
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -108,6 +109,13 @@ function App() {
                 <PrivateRoute>
                   <Layout>
                     <AIAdvisor />
+                  </Layout>
+                </PrivateRoute>
+              } />
+              <Route path="/feedback" element={
+                <PrivateRoute>
+                  <Layout>
+                    <FeedbackChat />
                   </Layout>
                 </PrivateRoute>
               } />

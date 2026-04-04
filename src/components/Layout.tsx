@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Receipt, TrendingUp, LineChart, LogOut, User, Shuffle, Bot, Plus, UserPlus, Menu, X, ChevronDown, Check, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LayoutDashboard, Receipt, TrendingUp, LineChart, LogOut, User, Shuffle, Bot, Plus, UserPlus, Menu, X, ChevronDown, Check, PanelLeftClose, PanelLeftOpen, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGroup } from '../context/GroupContext';
 import clsx from 'clsx';
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/expenses', label: 'Gastos Variáveis', icon: Shuffle, activeClass: 'bg-amber-50 text-amber-700' },
   { to: '/incomes', label: 'Entradas', icon: TrendingUp, activeClass: 'bg-green-50 text-green-700' },
   { to: '/investments', label: 'Investimentos', icon: LineChart, activeClass: 'bg-purple-50 text-purple-700' },
+  { to: '/feedback', label: 'Feedback', icon: MessageSquare, activeClass: 'bg-violet-50 text-violet-700' },
 ];
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
