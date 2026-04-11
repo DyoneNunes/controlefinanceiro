@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { X, Wallet, TrendingUp, TrendingDown, DollarSign, Shuffle, Clock, LineChart, CheckCircle, AlertCircle } from 'lucide-react';
 import { formatCurrency } from '../utils/finance';
 import { format, parseISO } from 'date-fns';
@@ -471,9 +472,16 @@ function renderContent(type: ModalType, s: MonthlyModalData) {
 export const DashboardCardModal = ({ type, onClose, monthlyStats }: DashboardCardModalProps) => {
   const { Icon, title, description, iconBg, iconBorder, iconColor, gradientFrom, gradientTo } = config[type];
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
   return (
     <div
-      className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-start justify-center z-50 p-4 pt-6 sm:pt-12 md:pt-20 modal-overlay overflow-y-auto"
+      className="fixed inset-y-0 right-0 left-0 md:left-[var(--sidebar-offset)] bg-gray-900/30 backdrop-blur-sm flex items-center justify-center p-4 z-50 modal-overlay overflow-y-auto transition-all duration-300"
       onClick={onClose}
     >
       <div

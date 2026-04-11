@@ -2,8 +2,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const FREE_MODELS = [
     'gemini-2.5-flash',
-    'gemini-2.5-flash-lite-preview-06-17',
-    'gemini-2.0-flash-exp'
+    'gemini-2.5-flash-lite',
+    'gemini-2.0-flash'
 ];
 
 const PRO_MODELS = [

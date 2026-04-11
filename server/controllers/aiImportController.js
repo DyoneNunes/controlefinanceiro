@@ -25,6 +25,37 @@ redisClient.on('error', (err) => console.error('Redis Client Error', err));
     }
 })();
 
+// --- Helper: Fallback API Caller ---
+async function generateWithFallback(genAI, primaryModel, prompt) {
+    const modelsToTry = [
+        primaryModel,
+        'gemini-2.5-flash-lite'
+    ];
+    const uniqueModels = [...new Set(modelsToTry)];
+    
+    let lastError;
+    
+    for (const modelName of uniqueModels) {
+        try {
+            const model = genAI.getGenerativeModel({
+                model: modelName,
+                generationConfig: { response_mime_type: "application/json" }
+            });
+            console.log(`🤖 Gerando conteúdo com o modelo: ${modelName}`);
+            const result = await Promise.race([
+                model.generateContent(prompt),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout atingido (Processamento extenso)')), 120000))
+            ]);
+            return result;
+        } catch (err) {
+            console.warn(`⚠️ Falha com o modelo ${modelName}:`, err.status || err.message);
+            lastError = err;
+        }
+    }
+    
+    throw lastError;
+}
+
 // AI Advisor
 exports.getAdvice = async (req, res) => {
     try {
@@ -69,11 +100,6 @@ exports.getAdvice = async (req, res) => {
 
         console.log(`🐢 Cache MISS for advisor. Generating new with Gemini...`);
 
-        const model = genAI.getGenerativeModel({
-            model: activeModel,
-            generationConfig: { response_mime_type: "application/json" }
-        });
-
         const prompt = `
       Atue como um consultor financeiro pessoal altamente qualificado. Analise os dados brutos abaixo e forneça um relatório estratégico em formato JSON.
 
@@ -94,7 +120,7 @@ exports.getAdvice = async (req, res) => {
       Seja encorajador mas realista. Fale em português do Brasil.
     `;
 
-        const result = await model.generateContent(prompt);
+        const result = await generateWithFallback(genAI, activeModel, prompt);
         const text = result.response.text();
         const parsedAdvice = JSON.parse(text);
 
@@ -146,6 +172,34 @@ exports.getAdvisorHistoryDetail = async (req, res) => {
     }
 };
 
+// --- Helper: Parse OFX date format (YYYYMMDDHHMMSS[offset]) to YYYY-MM-DD ---
+function parseOfxDate(raw) {
+    if (!raw) return null;
+    const digits = raw.replace(/[^\d]/g, '').substring(0, 8);
+    if (digits.length < 8) return raw;
+    return `${digits.substring(0, 4)}-${digits.substring(4, 6)}-${digits.substring(6, 8)}`;
+}
+
+// --- Helper: Normalize any date string to YYYY-MM-DD for PostgreSQL ---
+function normalizeDate(dateStr) {
+    if (!dateStr) return null;
+    // Already YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    // DD/MM/YYYY
+    const brMatch = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (brMatch) return `${brMatch[3]}-${brMatch[2]}-${brMatch[1]}`;
+    // MM/DD/YYYY
+    const usMatch = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (usMatch) return `${usMatch[3]}-${usMatch[1]}-${usMatch[2]}`;
+    // YYYYMMDD (no separators)
+    const compactMatch = dateStr.match(/^(\d{4})(\d{2})(\d{2})/);
+    if (compactMatch) return `${compactMatch[1]}-${compactMatch[2]}-${compactMatch[3]}`;
+    // Fallback: try JS Date parse
+    const parsed = new Date(dateStr);
+    if (!isNaN(parsed.getTime())) return parsed.toISOString().substring(0, 10);
+    return dateStr;
+}
+
 // Import
 exports.importOfxPdf = async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
@@ -157,10 +211,6 @@ exports.importOfxPdf = async (req, res) => {
                 const data = await pdfParse(req.file.buffer);
                 const textContent = data.text;
 
-            const model = genAI.getGenerativeModel({
-                model: activeModel,
-                generationConfig: { response_mime_type: "application/json" }
-            });
                 const prompt = `
           Atue como um parser de extratos bancários. Analise o texto bruto abaixo extraído de um PDF e identifique as transações individuais.
           Regras de Saída: APENAS um JSON Array válido.
@@ -168,7 +218,7 @@ exports.importOfxPdf = async (req, res) => {
           Texto: ${textContent.slice(0, 50000)}
         `;
 
-                const result = await model.generateContent(prompt);
+                const result = await generateWithFallback(genAI, activeModel, prompt);
                 let responseText = result.response.text();
                 responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
                 const aiTransactions = JSON.parse(responseText);
@@ -178,11 +228,11 @@ exports.importOfxPdf = async (req, res) => {
                     const finalAmount = tx.type === 'DEBIT' ? -absAmount : absAmount;
                     return {
                         id: `pdf-ai-${index}-${Date.now()}`,
-                        date: tx.date,
+                        date: normalizeDate(tx.date),
                         amount: finalAmount,
                         description: tx.description,
                         type: tx.type,
-                        category: tx.type === 'CREDIT' ? 'income' : 'expense',
+                        category: tx.type === 'CREDIT' ? 'incomes' : 'random_expenses',
                         selected: true
                     };
                 });
@@ -195,7 +245,18 @@ exports.importOfxPdf = async (req, res) => {
             const stmtTrn = data.OFX.BANKMSGSRSV1?.STMTTRNRS?.STMTRS?.BANKTRANLIST?.STMTTRN;
             if (stmtTrn) {
                 const txList = Array.isArray(stmtTrn) ? stmtTrn : [stmtTrn];
-                transactions = txList.map((tx, index) => ({ id: tx.FITID || index, date: tx.DTPOSTED, amount: parseFloat(tx.TRNAMT), description: tx.MEMO || tx.NAME, type: 'DEBIT', category: 'expense', selected: true }));
+                transactions = txList.map((tx, index) => {
+                    const amount = parseFloat(tx.TRNAMT);
+                    return {
+                        id: tx.FITID || index,
+                        date: parseOfxDate(tx.DTPOSTED),
+                        amount: amount,
+                        description: tx.MEMO || tx.NAME,
+                        type: amount < 0 ? 'DEBIT' : 'CREDIT',
+                        category: amount < 0 ? 'random_expenses' : 'incomes',
+                        selected: true
+                    };
+                });
             }
         }
         res.json({ transactions });
@@ -210,8 +271,15 @@ exports.confirmImport = async (req, res) => {
         for (const tx of transactions) {
             if (!tx.selected) continue;
             const amount = Math.abs(parseFloat(tx.amount));
-            if (tx.category === 'income') await client.query('INSERT INTO incomes (description, value, date, group_id, user_id) VALUES ($1, $2, $3, $4, $5)', [tx.description, amount, tx.date, req.group.id, req.user.id]);
-            else await client.query('INSERT INTO random_expenses (name, value, date, status, group_id, user_id) VALUES ($1, $2, $3, $4, $5, $6)', [tx.description, amount, tx.date, 'paid', req.group.id, req.user.id]);
+            if (tx.category === 'incomes') {
+                await client.query('INSERT INTO incomes (description, value, date, group_id, user_id) VALUES ($1, $2, $3, $4, $5)', [tx.description, amount, tx.date, req.group.id, req.user.id]);
+            } else if (tx.category === 'bills') {
+                await client.query('INSERT INTO bills (name, value, due_date, status, group_id, user_id) VALUES ($1, $2, $3, $4, $5, $6)', [tx.description, amount, tx.date, 'paid', req.group.id, req.user.id]);
+            } else if (tx.category === 'investments') {
+                await client.query('INSERT INTO investments (name, initial_amount, current_amount, cdi_percent, group_id, user_id) VALUES ($1, $2, $3, $4, $5, $6)', [tx.description, amount, amount, 100.0, req.group.id, req.user.id]);
+            } else {
+                await client.query('INSERT INTO random_expenses (name, value, date, status, group_id, user_id) VALUES ($1, $2, $3, $4, $5, $6)', [tx.description, amount, tx.date, 'paid', req.group.id, req.user.id]);
+            }
         }
         await client.query('COMMIT');
         res.json({ success: true });

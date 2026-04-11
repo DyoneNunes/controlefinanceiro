@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, Check, X, AlertCircle, FileUp, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGroup } from '../context/GroupContext';
@@ -10,11 +10,18 @@ interface ImportedTransaction {
   amount: number;
   description: string;
   type: 'CREDIT' | 'DEBIT';
-  category: 'income' | 'expense';
+  category: 'incomes' | 'bills' | 'random_expenses' | 'investments';
   selected: boolean;
 }
 
 export const BankImport = ({ onClose }: { onClose: () => void }) => {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
   const { token } = useAuth();
   const { currentGroup } = useGroup();
   const { refreshData } = useFinance();
@@ -64,7 +71,7 @@ export const BankImport = ({ onClose }: { onClose: () => void }) => {
       
       const classified = data.transactions.map((tx: any) => ({
          ...tx,
-         category: tx.category ? tx.category : (tx.amount < 0 ? 'expense' : 'income'),
+         category: tx.category === 'income' ? 'incomes' : (tx.category === 'expense' ? 'random_expenses' : (tx.category || (tx.amount < 0 ? 'random_expenses' : 'incomes'))),
          selected: true
       }));
 
@@ -83,7 +90,7 @@ export const BankImport = ({ onClose }: { onClose: () => void }) => {
     setTransactions(updated);
   };
 
-  const changeCategory = (index: number, newCat: 'income' | 'expense') => {
+  const changeCategory = (index: number, newCat: 'incomes' | 'bills' | 'random_expenses' | 'investments') => {
     const updated = [...transactions];
     updated[index].category = newCat;
     setTransactions(updated);
@@ -120,7 +127,7 @@ export const BankImport = ({ onClose }: { onClose: () => void }) => {
   const selectedCount = transactions.filter(t => t.selected).length;
 
   return (
-    <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-start justify-center p-4 pt-6 sm:pt-12 md:pt-20 z-50 modal-overlay overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-y-0 right-0 left-0 md:left-[var(--sidebar-offset)] bg-gray-900/30 backdrop-blur-sm flex items-center justify-center p-4 z-50 modal-overlay overflow-y-auto transition-all duration-300" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[calc(100vh-3rem)] sm:max-h-[85vh] overflow-hidden flex flex-col modal-panel" onClick={e => e.stopPropagation()}>
         {/* Accent bar */}
         <div className="h-1.5 bg-gradient-to-r from-indigo-500 to-blue-500 shrink-0" />
@@ -236,8 +243,10 @@ export const BankImport = ({ onClose }: { onClose: () => void }) => {
                             onChange={(e) => changeCategory(idx, e.target.value as any)}
                             className="bg-gray-50/80 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-medium cursor-pointer focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                           >
-                            <option value="income">Receita</option>
-                            <option value="expense">Despesa</option>
+                            <option value="incomes">Receitas</option>
+                            <option value="bills">Contas Fixas</option>
+                            <option value="random_expenses">Gastos Variáveis</option>
+                            <option value="investments">Investimentos</option>
                           </select>
                         </td>
                       </tr>

@@ -244,7 +244,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </div>
       )}
 
-      <main className={clsx("flex-1 p-4 md:p-8 min-h-screen pt-16 md:pt-8 transition-all duration-300", isSidebarCollapsed ? "md:ml-16" : "md:ml-64")}>
+      <main 
+        className={clsx("flex-1 p-4 md:p-8 min-h-screen pt-16 md:pt-8 transition-all duration-300", isSidebarCollapsed ? "md:ml-16" : "md:ml-64")}
+        style={{ '--sidebar-offset': isSidebarCollapsed ? '64px' : '256px' } as React.CSSProperties}
+      >
         <div className="max-w-5xl mx-auto">
           {children}
         </div>

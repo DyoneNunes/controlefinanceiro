@@ -25,6 +25,13 @@ export const InvestmentForm: React.FC<InvestmentFormProps> = ({ onClose }) => {
     setSelectedGroupId(currentGroup?.id);
   }, [currentGroup]);
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
   const previewReturn = () => {
     if (!formData.initialAmount || !formData.cdiPercent || !formData.durationMonths) return 0;
     return calculateInvestmentReturn(
@@ -53,7 +60,7 @@ export const InvestmentForm: React.FC<InvestmentFormProps> = ({ onClose }) => {
   const estimatedProfit = estimatedTotal > 0 ? estimatedTotal - Number(formData.initialAmount) : 0;
 
   return (
-    <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-start justify-center z-50 p-4 pt-6 sm:pt-12 md:pt-20 modal-overlay overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-y-0 right-0 left-0 md:left-[var(--sidebar-offset)] bg-gray-900/30 backdrop-blur-sm flex items-center justify-center p-4 z-50 modal-overlay overflow-y-auto transition-all duration-300" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl relative modal-panel overflow-hidden max-h-[calc(100vh-3rem)] sm:max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
         {/* Accent bar */}
         <div className="h-1.5 bg-gradient-to-r from-purple-500 to-violet-500 shrink-0" />
