@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Receipt, TrendingUp, LineChart, LogOut, User, Shuffle, Bot, Plus, UserPlus, Menu, X, ChevronDown, Check, PanelLeftClose, PanelLeftOpen, MessageSquare } from 'lucide-react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { LayoutDashboard, Receipt, TrendingUp, LineChart, LogOut, User, Shuffle, Bot, Plus, UserPlus, Menu, X, ChevronDown, Check, PanelLeftClose, PanelLeftOpen, MessageSquare, Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGroup } from '../context/GroupContext';
 import clsx from 'clsx';
 
 const navItems = [
+  { to: '/news', label: 'Notificações', icon: Bell, activeClass: 'bg-orange-50 text-orange-700' },
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, activeClass: 'bg-blue-50 text-blue-700' },
   { to: '/advisor', label: 'Consultor IA', icon: Bot, activeClass: 'bg-indigo-50 text-indigo-700' },
   { to: '/bills', label: 'Contas Fixas', icon: Receipt, activeClass: 'bg-blue-50 text-blue-700' },
@@ -19,10 +20,45 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const { logout, user } = useAuth();
   const { currentGroup, createGroup, inviteUser, selectGroup, loading: groupLoading, groups } = useGroup();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isWalletDropdownOpen, setIsWalletDropdownOpen] = useState(false);
   const walletDropdownRef = useRef<HTMLDivElement>(null);
+  const [unreadNewsCount, setUnreadNewsCount] = useState(0);
+
+  useEffect(() => {
+    const checkNews = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/notifications`);
+        if (res.ok) {
+          const notifications = await res.json();
+          // Se estiver na própria página de news, reseta e atualiza
+          if (location.pathname === '/news') {
+            if (notifications.length > 0) {
+              localStorage.setItem('lastReadNews', notifications[0].created_at);
+            }
+            setUnreadNewsCount(0);
+          } else {
+            const lastRead = localStorage.getItem('lastReadNews');
+            if (!lastRead) {
+              setUnreadNewsCount(notifications.length);
+            } else {
+              const lastReadDate = new Date(lastRead);
+              const unread = notifications.filter((n: any) => new Date(n.created_at) > lastReadDate).length;
+              setUnreadNewsCount(unread);
+            }
+          }
+        }
+      } catch {}
+    };
+    checkNews();
+    
+    // Configura um polling para garantir que o aviso apareça
+    // mesmo que o usuário não clique em nada ou alterne abas
+    const interval = setInterval(checkNews, 10000);
+    return () => clearInterval(interval);
+  }, [location.pathname]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -140,12 +176,19 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             end={to === '/'}
             onClick={closeMobileMenu}
             className={({ isActive }) => clsx(
-              "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors",
+              "flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors",
               isActive ? activeClass : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
             )}
           >
-            <Icon className="w-5 h-5 mr-3" />
-            {label}
+            <div className="flex items-center">
+              <Icon className="w-5 h-5 mr-3 shrink-0" />
+              {label}
+            </div>
+            {to === '/news' && unreadNewsCount > 0 && (
+              <span className="bg-orange-500 text-white flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold">
+                {unreadNewsCount > 9 ? '9+' : unreadNewsCount}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>
@@ -186,11 +229,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   end={to === '/'}
                   title={label}
                   className={({ isActive }) => clsx(
-                    "p-3 rounded-lg transition-colors",
+                    "relative p-3 rounded-lg transition-colors",
                     isActive ? activeClass : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                   )}
                 >
                   <Icon className="w-5 h-5" />
+                  {to === '/news' && unreadNewsCount > 0 && (
+                    <span className="absolute top-2 right-2 w-2 h-2 bg-orange-500 rounded-full animate-pulse border border-white" />
+                  )}
                 </NavLink>
               ))}
             </nav>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Lock, User, Plus, Pencil, Trash2, X, Check, AlertCircle, LogOut, Users, Shield, Mail, Send, MessageSquare, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Lock, User, Plus, Pencil, Trash2, X, Check, AlertCircle, LogOut, Users, Shield, Mail, Send, MessageSquare, ArrowLeft, RefreshCw, Bell } from 'lucide-react';
 import { fetchAllFeedbackMessages, sendAdminReply } from '../services/feedbackService';
 import type { FeedbackMessage } from '../services/feedbackService';
 import { decryptFeedback, encryptFeedback } from '../utils/feedbackCrypto';
@@ -18,6 +18,14 @@ interface User {
 interface Feedback {
   message: string;
   type: 'success' | 'error';
+}
+
+interface AppNotification {
+  id: string;
+  title: string;
+  content: string;
+  type: string;
+  created_at: string;
 }
 
 // ---- LOGIN ----
@@ -377,6 +385,13 @@ const AdminDashboard: React.FC<{ token: string; onLogout: () => void }> = ({ tok
   const [showFeedbacks, setShowFeedbacks] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // Avisos
+  const [showNewsEditor, setShowNewsEditor] = useState(false);
+  const [newsList, setNewsList] = useState<AppNotification[]>([]);
+  const [newsTitle, setNewsTitle] = useState('');
+  const [newsContent, setNewsContent] = useState('');
+  const [newsLoading, setNewsLoading] = useState(false);
+
   const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
 
   const showFeedback = (message: string, type: 'success' | 'error') => {
@@ -393,7 +408,18 @@ const AdminDashboard: React.FC<{ token: string; onLogout: () => void }> = ({ tok
     } finally { setLoading(false); }
   };
 
+  const fetchNews = async () => {
+    try {
+      const res = await fetch(`${API_URL}/admin/notifications`, { headers });
+      if (res.ok) setNewsList(await res.json());
+    } catch {}
+  };
+
   useEffect(() => { fetchUsers(); }, []);
+
+  useEffect(() => {
+    if (showNewsEditor) fetchNews();
+  }, [showNewsEditor]);
 
   // Poll unread feedback count every 12 seconds
   useEffect(() => {
@@ -476,6 +502,42 @@ const AdminDashboard: React.FC<{ token: string; onLogout: () => void }> = ({ tok
     } catch { showFeedback('Erro de conexão', 'error'); }
   };
 
+  const handleCreateNews = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsTitle.trim() || !newsContent.trim()) return;
+    setNewsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/admin/notifications`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ title: newsTitle, content: newsContent })
+      });
+      if (res.ok) {
+        showFeedback('Aviso publicado com sucesso!', 'success');
+        setNewsTitle('');
+        setNewsContent('');
+        fetchNews();
+      } else {
+        const d = await res.json();
+        showFeedback(d.error || 'Erro ao publicar', 'error');
+      }
+    } catch {
+       showFeedback('Erro de conexão', 'error');
+    } finally {
+       setNewsLoading(false);
+    }
+  };
+
+  const handleDeleteNews = async (id: string) => {
+    if (!window.confirm('Excluir este aviso?')) return;
+    try {
+      const res = await fetch(`${API_URL}/admin/notifications/${id}`, { method: 'DELETE', headers });
+      if (res.ok) {
+        showFeedback('Aviso removido.', 'success');
+        fetchNews();
+      }
+    } catch {}
+  };
+
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
@@ -506,10 +568,19 @@ const AdminDashboard: React.FC<{ token: string; onLogout: () => void }> = ({ tok
           </div>
         )}
 
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-end gap-3 flex-wrap">
+          {/* Avisos button */}
+          <button
+            onClick={() => { setShowNewsEditor(v => !v); setShowFeedbacks(false); setShowNewForm(false); setEditUser(null); }}
+            className={`flex items-center gap-2 px-4 py-2 ${showNewsEditor ? 'bg-orange-700' : 'bg-orange-600 hover:bg-orange-700'} text-white rounded-xl font-semibold text-sm transition-colors`}
+          >
+            <Bell className="w-4 h-4" />
+            Avisos
+          </button>
+
           {/* Feedbacks button with unread badge */}
           <button
-            onClick={() => { setShowFeedbacks(v => !v); setShowNewForm(false); setEditUser(null); }}
+            onClick={() => { setShowFeedbacks(v => !v); setShowNewsEditor(false); setShowNewForm(false); setEditUser(null); }}
             className="relative flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold text-sm transition-colors"
           >
             <MessageSquare className="w-4 h-4" />
@@ -524,7 +595,7 @@ const AdminDashboard: React.FC<{ token: string; onLogout: () => void }> = ({ tok
             )}
           </button>
 
-          <button onClick={() => { setShowNewForm(true); setEditUser(null); setShowFeedbacks(false); }}
+          <button onClick={() => { setShowNewForm(true); setEditUser(null); setShowFeedbacks(false); setShowNewsEditor(false); }}
             className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-semibold text-sm transition-colors">
             <Plus className="w-4 h-4" /> Novo Usuário
           </button>
@@ -537,7 +608,7 @@ const AdminDashboard: React.FC<{ token: string; onLogout: () => void }> = ({ tok
           />
         )}
 
-        {!showFeedbacks && <>
+        {!showFeedbacks && !showNewsEditor && <>
         {/* Form novo usuário */}
         {showNewForm && (
           <div className="bg-gray-800 rounded-2xl border border-gray-700 p-6">
@@ -663,6 +734,60 @@ const AdminDashboard: React.FC<{ token: string; onLogout: () => void }> = ({ tok
           )}
         </div>
         </>}
+
+        {showNewsEditor && (
+          <div className="space-y-6">
+            <div className="bg-gray-800 rounded-2xl border border-gray-700 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Bell className="w-5 h-5 text-orange-400" />
+                <h3 className="text-white font-bold">Publicar Aviso / Novidade</h3>
+              </div>
+              <form onSubmit={handleCreateNews} className="flex flex-col gap-3">
+                <input type="text" placeholder="Título (ex: Nova Versão 2.0)" required
+                  className="px-4 py-2 bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                  value={newsTitle} onChange={e => setNewsTitle(e.target.value)} />
+                <textarea placeholder="Conteúdo da novidade..." required rows={4}
+                  className="px-4 py-2 bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none resize-none"
+                  value={newsContent} onChange={e => setNewsContent(e.target.value)} />
+                <div className="flex justify-end mt-2">
+                  <button type="submit" disabled={newsLoading}
+                    className="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50">
+                    {newsLoading ? 'Publicando...' : 'Publicar'}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-700 flex items-center gap-2">
+                <Bell className="w-5 h-5 text-gray-400" />
+                <span className="font-semibold text-gray-300 text-sm">Avisos Publicados ({newsList.length})</span>
+              </div>
+              {newsList.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">Nenhum aviso publicado.</div>
+              ) : (
+                <div className="divide-y divide-gray-700/50 max-h-96 overflow-y-auto">
+                  {newsList.map(news => (
+                    <div key={news.id} className="px-6 py-4 flex items-start justify-between gap-4 group">
+                      <div className="min-w-0 pr-4">
+                        <p className="font-semibold text-white truncate">{news.title}</p>
+                        <p className="text-sm text-gray-400 mt-1 whitespace-pre-wrap">{news.content}</p>
+                        <p className="text-xs text-gray-500 mt-2">{formatDate(news.created_at)}</p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteNews(news.id)}
+                        className="p-2 bg-rose-900/40 text-rose-400 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-rose-900/60 transition-all flex-shrink-0"
+                        title="Excluir aviso"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

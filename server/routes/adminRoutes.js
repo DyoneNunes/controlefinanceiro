@@ -20,4 +20,9 @@ router.put('/users/:id/password', requireAdmin, adminController.resetPassword);
 router.post('/users/:id/send-reset', requireAdmin, adminController.sendPasswordReset);
 router.delete('/users/:id', requireAdmin, adminController.deleteUser);
 
+// Notificações
+router.post('/notifications', requireAdmin, adminController.createNotification);
+router.get('/notifications', requireAdmin, adminController.listNotificationsAdmin);
+router.delete('/notifications/:id', requireAdmin, adminController.deleteNotification);
+
 module.exports = router;

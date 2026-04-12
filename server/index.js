@@ -43,6 +43,7 @@ const aiImportRoutes = require('./routes/aiImportRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api', require('./routes/publicRoutes'));
 app.use('/api/encryption', encryptionRoutes);
 app.use('/api/bills', billRoutes);
 app.use('/api/ai', aiImportRoutes);

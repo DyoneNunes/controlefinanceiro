@@ -148,3 +148,32 @@ exports.deleteUser = async (req, res) => {
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
+
+// --- Notificações ---
+exports.createNotification = async (req, res) => {
+    const { title, content, type } = req.body;
+    if (!title || !content) return res.status(400).json({ error: 'Título e conteúdo são obrigatórios' });
+    try {
+        const result = await pool.query(
+            'INSERT INTO global_notifications (title, content, type) VALUES ($1, $2, $3) RETURNING *',
+            [title.trim(), content.trim(), type || 'info']
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.listNotificationsAdmin = async (req, res) => {
+    try {
+        const { rows } = await pool.query('SELECT * FROM global_notifications ORDER BY created_at DESC');
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.deleteNotification = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query('DELETE FROM global_notifications WHERE id = $1 RETURNING id', [id]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Notificação não encontrada' });
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};

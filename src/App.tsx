@@ -18,6 +18,7 @@ import { AIAdvisor } from './components/AIAdvisor';
 import { AdminPanel } from './components/AdminPanel';
 import { ResetPassword } from './components/ResetPassword';
 import { FeedbackChat } from './components/FeedbackChat';
+import { NewsTab } from './components/NewsTab';
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -116,6 +117,13 @@ function App() {
                 <PrivateRoute>
                   <Layout>
                     <FeedbackChat />
+                  </Layout>
+                </PrivateRoute>
+              } />
+              <Route path="/news" element={
+                <PrivateRoute>
+                  <Layout>
+                    <NewsTab />
                   </Layout>
                 </PrivateRoute>
               } />
