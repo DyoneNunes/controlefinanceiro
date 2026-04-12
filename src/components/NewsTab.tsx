@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Calendar } from 'lucide-react';
+import { Bell, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -14,6 +14,11 @@ interface AppNotification {
 export const NewsTab: React.FC = () => {
   const [news, setNews] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  const toggleExpand = (id: string) => {
+    setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -85,7 +90,23 @@ export const NewsTab: React.FC = () => {
               </div>
               
               <div className="prose prose-orange max-w-none prose-p:text-gray-600 prose-p:leading-relaxed">
-                <p className="whitespace-pre-wrap">{item.content}</p>
+                <p className="whitespace-pre-wrap">
+                  {item.content.length > 250 && !expanded[item.id]
+                    ? item.content.slice(0, 250) + '...'
+                    : item.content}
+                </p>
+                {item.content.length > 250 && (
+                  <button
+                    onClick={() => toggleExpand(item.id)}
+                    className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-orange-600 hover:text-orange-700 transition-colors"
+                  >
+                    {expanded[item.id] ? (
+                      <>Mostrar menos <ChevronUp className="w-4 h-4" /></>
+                    ) : (
+                      <>Ler tudo <ChevronDown className="w-4 h-4" /></>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           ))}
