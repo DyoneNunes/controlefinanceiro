@@ -71,9 +71,9 @@ export const Dashboard = () => {
     const totalCashOutflows = paidTotal + randomTotal;
     const balance = incomeTotal - totalCashOutflows;
 
-    // Dinheiro livre = Receita - Todas as contas fixas do mês (pagas + pendentes + vencidas)
+    // Dinheiro livre = Receita - Todas as contas fixas do mês (pagas + pendentes + vencidas) e variáveis
     const allBillsTotal = paidTotal + pendingTotal + overdueTotal;
-    const dinheiroLivre = incomeTotal - allBillsTotal;
+    const dinheiroLivre = incomeTotal - allBillsTotal - randomTotal;
 
     return {
       incomeTotal,
@@ -189,7 +189,7 @@ export const Dashboard = () => {
           icon={DollarSign}
           colorClass={monthlyStats.dinheiroLivre >= 0 ? "text-teal-600" : "text-red-600"}
           bgClass={monthlyStats.dinheiroLivre >= 0 ? "bg-teal-50" : "bg-red-50"}
-          label="Receita - Todas as contas fixas"
+          label="Receita - Todas as contas fixas e variáveis"
           onIconClick={() => setActiveModal('freeMoney')}
         />
       </div>

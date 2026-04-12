@@ -84,7 +84,7 @@ const config: Record<ModalType, {
   },
   freeMoney: {
     title: 'Dinheiro Livre',
-    description: 'Receita menos todas as contas fixas',
+    description: 'Receita menos todas as contas fixas e variáveis',
     Icon: DollarSign,
     iconBg: 'bg-teal-50',
     iconBorder: 'border-teal-100',
@@ -308,7 +308,7 @@ function renderContent(type: ModalType, s: MonthlyModalData) {
               {formatCurrency(s.dinheiroLivre)}
             </p>
             <p className={`text-xs mt-1 ${isPositive ? 'text-teal-500' : 'text-red-500'}`}>
-              {isPositive ? 'Sobra após todas as contas fixas' : 'Deficit após todas as contas fixas'}
+              {isPositive ? 'Sobra após todas as contas fixas e variáveis' : 'Deficit após todas as contas fixas e variáveis'}
             </p>
           </div>
 
@@ -320,6 +320,7 @@ function renderContent(type: ModalType, s: MonthlyModalData) {
             {s.overdueTotal > 0 && (
               <CalcRow sign="−" label="Atrasadas" value={s.overdueTotal} valueColor="text-red-600" />
             )}
+            <CalcRow sign="−" label="Gastos Variáveis" value={s.randomTotal} valueColor="text-amber-600" />
             <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-2">
               <span className="font-semibold text-gray-700 flex items-center gap-1.5">
                 <span className="w-4 text-center font-bold text-gray-400">=</span>
