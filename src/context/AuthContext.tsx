@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setTokenState] = useState<string | null>(getToken());
   const [isLoading, setIsLoading] = useState(true);
-  const { initializeCrypto, clearCrypto } = useCrypto();
+  const { initializeCrypto, restoreCrypto, clearCrypto } = useCrypto();
 
   // Check for existing token on mount
   useEffect(() => {
@@ -58,9 +58,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const data = await res.json();
             setUser({ username: data.username });
             setTokenState(currentToken);
-            // Nota: NÃO inicializamos a criptografia aqui porque não temos
-            // a senha do usuário. A MEK será inicializada no próximo login.
-            // Dados criptografados não estarão acessíveis até o próximo login completo.
+            // Tenta restaurar a MEK do sessionStorage (sobrevive a refresh)
+            await restoreCrypto();
           } else {
             removeToken();
             setTokenState(null);

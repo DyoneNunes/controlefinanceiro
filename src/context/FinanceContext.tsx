@@ -41,13 +41,18 @@ interface FinanceContextType {
   markAsPaid: (id: string) => Promise<void>;
   deleteBill: (id: string) => Promise<void>;
   refreshBills: () => void;
+  createInstallments: (billId: string, numberOfInstallments: number, firstDueDate: string) => Promise<void>;
   addIncome: (data: Omit<Income, 'id'> & { groupId: string }) => Promise<void>;
   deleteIncome: (id: string) => Promise<void>;
+  markIncomeAsReceived: (id: string) => Promise<void>;
+  updateIncome: (id: string, data: Partial<Pick<Income, 'description' | 'value' | 'date'>>) => Promise<void>;
   addInvestment: (data: Omit<Investment, 'id'> & { groupId: string }) => Promise<void>;
   deleteInvestment: (id: string) => Promise<void>;
   addRandomExpense: (data: Omit<RandomExpense, 'id' | 'status'> & { groupId: string }) => Promise<void>;
+  updateRandomExpense: (id: string, data: Partial<Pick<RandomExpense, 'name' | 'value' | 'date'>>) => Promise<void>;
   deleteRandomExpense: (id: string) => Promise<void>;
   markRandomExpenseAsPaid: (id: string) => Promise<void>;
+  cancelRandomExpensePayment: (id: string) => Promise<void>;
   refreshData: () => Promise<void>;
   loading: boolean;
   error: string | null;
@@ -118,6 +123,11 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
    * Caso contrário, usa os campos em texto plano (legacy).
    */
   const decryptBill = useCallback(async (raw: any): Promise<Bill> => {
+    const installmentFields = {
+      installmentGroup: raw.installmentGroup || null,
+      installmentNumber: raw.installmentNumber || null,
+      installmentTotal: raw.installmentTotal || null,
+    };
     if (raw.isEncrypted && raw.encryptedData && cryptoReady) {
       try {
         const sensitive = await decrypt<BillSensitiveData>(raw.encryptedData, raw.encryptionIv);
@@ -129,6 +139,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           status: calculateStatus({ ...raw, dueDate: raw.dueDate }),
           paidDate: raw.paidDate,
           groupId: raw.groupId,
+          ...installmentFields,
         };
       } catch (e) {
         console.error('Falha ao descriptografar bill:', e);
@@ -143,6 +154,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       status: calculateStatus({ ...raw, dueDate: raw.dueDate }),
       paidDate: raw.paidDate,
       groupId: raw.groupId,
+      ...installmentFields,
     };
   }, [cryptoReady, decrypt]);
 
@@ -156,6 +168,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           value: sensitive.value,
           date: raw.date,
           groupId: raw.groupId,
+          status: raw.status || 'pending',
+          receivedDate: raw.receivedDate,
+          createdAt: raw.createdAt,
         };
       } catch (e) {
         console.error('Falha ao descriptografar income:', e);
@@ -167,6 +182,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       value: raw.value || 0,
       date: raw.date,
       groupId: raw.groupId,
+      status: raw.status || 'pending',
+      receivedDate: raw.receivedDate,
+      createdAt: raw.createdAt,
     };
   }, [cryptoReady, decrypt]);
 
@@ -415,6 +433,60 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     fetchData();
   };
 
+  const createInstallments = async (billId: string, numberOfInstallments: number, firstDueDate: string) => {
+    setLoading(true); setError(null);
+    try {
+      // Find the original bill to get its data
+      const originalBill = bills.find(b => b.id === billId);
+      if (!originalBill) throw new Error('Conta não encontrada');
+
+      // Calculate installment values with rounding correction
+      const baseValue = Math.floor((originalBill.value / numberOfInstallments) * 100) / 100;
+      const remainder = Math.round((originalBill.value - baseValue * numberOfInstallments) * 100) / 100;
+
+      // Build installment data array
+      const installmentsData = [];
+      for (let i = 0; i < numberOfInstallments; i++) {
+        const isLast = i === numberOfInstallments - 1;
+        const installmentValue = isLast ? baseValue + remainder : baseValue;
+        const installmentName = `${originalBill.name} (${i + 1}/${numberOfInstallments})`;
+
+        let instData: any = { name: installmentName, value: installmentValue };
+
+        // Encrypt each installment individually if E2EE is active
+        if (cryptoReady) {
+          const sensitiveData: BillSensitiveData = { name: installmentName, value: installmentValue };
+          const encrypted = await encrypt(sensitiveData);
+          instData = {
+            value: installmentValue,
+            encrypted_data: encrypted.ciphertext,
+            encryption_iv: encrypted.iv,
+          };
+        }
+        installmentsData.push(instData);
+      }
+
+      const res = await fetch(`${API_URL}/bills/${billId}/installments`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          numberOfInstallments,
+          firstDueDate,
+          installments: installmentsData,
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Falha ao criar parcelas.');
+      }
+      fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+      throw err;
+    } finally { setLoading(false); }
+  };
+
   const addIncome = async (data: Omit<Income, 'id'> & { groupId: string }) => {
     setLoading(true); setError(null);
     try {
@@ -461,6 +533,61 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           throw new Error(err.error || 'Failed to delete income.');
         }
         fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+      throw err;
+    } finally { setLoading(false); }
+  };
+
+  const markIncomeAsReceived = async (id: string) => {
+    setLoading(true); setError(null);
+    try {
+      const res = await fetch(`${API_URL}/incomes/${id}/receive`, {
+        method: 'PATCH',
+        headers: getHeaders()
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Falha ao marcar receita como recebida.');
+      }
+      fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+      throw err;
+    } finally { setLoading(false); }
+  };
+
+  const updateIncome = async (id: string, data: Partial<Pick<Income, 'description' | 'value' | 'date'>>) => {
+    setLoading(true); setError(null);
+    try {
+      let body: any = { ...data };
+
+      if (cryptoReady && (data.description !== undefined || data.value !== undefined)) {
+        const current = incomes.find(e => e.id === id);
+        const description = data.description ?? current?.description ?? '';
+        const value = data.value ?? current?.value ?? 0;
+        const sensitiveData: IncomeSensitiveData = { description, value };
+        const encrypted = await encrypt(sensitiveData);
+        body = {
+          date: data.date,
+          value,
+          encrypted_data: encrypted.ciphertext,
+          encryption_iv: encrypted.iv,
+        };
+      }
+
+      const res = await fetch(`${API_URL}/incomes/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Falha ao atualizar receita.');
+      }
+      fetchData();
     } catch (err: any) {
       console.error(err);
       setError(err.message);
@@ -561,6 +688,42 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } finally { setLoading(false); }
   };
 
+  const updateRandomExpense = async (id: string, data: Partial<Pick<RandomExpense, 'name' | 'value' | 'date'>>) => {
+    setLoading(true); setError(null);
+    try {
+      let body: any = { ...data };
+
+      if (cryptoReady && (data.name !== undefined || data.value !== undefined)) {
+        const current = randomExpenses.find(e => e.id === id);
+        const name = data.name ?? current?.name ?? '';
+        const value = data.value ?? current?.value ?? 0;
+        const sensitiveData: RandomExpenseSensitiveData = { name, value };
+        const encrypted = await encrypt(sensitiveData);
+        body = {
+          date: data.date,
+          value,
+          encrypted_data: encrypted.ciphertext,
+          encryption_iv: encrypted.iv,
+        };
+      }
+
+      const res = await fetch(`${API_URL}/random-expenses/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to update random expense.');
+      }
+      fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+      throw err;
+    } finally { setLoading(false); }
+  };
+
   const deleteRandomExpense = async (id: string) => {
     setLoading(true); setError(null);
       try {
@@ -599,13 +762,33 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } finally { setLoading(false); }
   };
 
+  const cancelRandomExpensePayment = async (id: string) => {
+    setLoading(true); setError(null);
+    try {
+      const res = await fetch(`${API_URL}/random-expenses/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({ status: 'pending' })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to cancel random expense payment.');
+      }
+      fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+      throw err;
+    } finally { setLoading(false); }
+  };
+
   return (
     <FinanceContext.Provider value={{
       bills, incomes, investments, randomExpenses, stats,
-      addBill, markAsPaid, deleteBill, refreshBills,
-      addIncome, deleteIncome,
+      addBill, markAsPaid, deleteBill, refreshBills, createInstallments,
+      addIncome, deleteIncome, markIncomeAsReceived, updateIncome,
       addInvestment, deleteInvestment,
-      addRandomExpense, deleteRandomExpense, markRandomExpenseAsPaid,
+      addRandomExpense, updateRandomExpense, deleteRandomExpense, markRandomExpenseAsPaid, cancelRandomExpensePayment,
       refreshData: fetchData,
       loading, error
     }}>

@@ -25,4 +25,21 @@ router.post('/notifications', requireAdmin, adminController.createNotification);
 router.get('/notifications', requireAdmin, adminController.listNotificationsAdmin);
 router.delete('/notifications/:id', requireAdmin, adminController.deleteNotification);
 
+// E-mail triggers
+router.post('/email/bill-reminder', requireAdmin, async (req, res) => {
+  try {
+    const { checkBillsDue } = require('../services/schedulerService');
+    await checkBillsDue();
+    res.json({ success: true, message: 'Lembrete de contas verificado e enviado.' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/email/monthly-summary', requireAdmin, async (req, res) => {
+  try {
+    const { sendMonthlySummaries } = require('../services/schedulerService');
+    await sendMonthlySummaries();
+    res.json({ success: true, message: 'Resumo mensal verificado e enviado.' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;

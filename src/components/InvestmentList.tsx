@@ -5,7 +5,7 @@ import { InvestmentForm } from './InvestmentForm';
 import { formatCurrency } from '../utils/finance';
 import { calculateInvestmentReturn } from '../utils/investment';
 import { format, parseISO, addMonths } from 'date-fns';
-import { Trash2, Plus, TrendingUp, Calendar } from 'lucide-react';
+import { Plus, TrendingUp, Calendar, XCircle } from 'lucide-react';
 
 export const InvestmentList = () => {
   const { investments, deleteInvestment } = useFinance();
@@ -43,14 +43,14 @@ export const InvestmentList = () => {
             <div key={inv.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all relative group">
               <button
                 onClick={() => {
-                  if (window.confirm('Tem certeza que deseja excluir este investimento?')) {
+                  if (window.confirm('Tem certeza que deseja cancelar este investimento? O valor não constará mais no seu saldo.')) {
                     deleteInvestment(inv.id);
                   }
                 }}
                 className="absolute top-4 right-4 p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                title="Excluir Investimento"
+                title="Cancelar Investimento"
               >
-                <Trash2 className="w-4 h-4" />
+                <XCircle className="w-4 h-4" />
               </button>
 
               <div className="flex items-center justify-between mb-4">

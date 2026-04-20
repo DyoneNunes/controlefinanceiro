@@ -44,54 +44,80 @@ export const Dashboard = () => {
       .filter(i => isCurrentMonth(i.date))
       .reduce((sum, i) => sum + Number(i.value), 0);
 
+    // Contas Fixas (Bills)
     const billsPaid = bills.filter(b => {
       if (b.status !== 'paid') return false;
       const effectiveDate = b.paidDate ? b.paidDate : b.dueDate;
       return isCurrentMonth(effectiveDate);
     });
-
     const billsPending = bills.filter(b =>
       b.status === 'pending' && isCurrentMonth(b.dueDate)
     );
-
     const billsOverdue = bills.filter(b => b.status === 'overdue');
 
-    const paidTotal = billsPaid.reduce((sum, b) => sum + Number(b.value), 0);
-    const pendingTotal = billsPending.reduce((sum, b) => sum + Number(b.value), 0);
-    const overdueTotal = billsOverdue.reduce((sum, b) => sum + Number(b.value), 0);
+    const billsPaidTotal = billsPaid.reduce((sum, b) => sum + Number(b.value), 0);
+    const billsPendingTotal = billsPending.reduce((sum, b) => sum + Number(b.value), 0);
+    const billsOverdueTotal = billsOverdue.reduce((sum, b) => sum + Number(b.value), 0);
 
-    const randomTotal = randomExpenses
-      .filter(r => isCurrentMonth(r.date))
-      .reduce((sum, r) => sum + Number(r.value), 0);
+    // Gastos Variáveis (Random Expenses) - por status
+    const monthlyRandom = randomExpenses.filter(r => isCurrentMonth(r.date));
+    const randomPaid = monthlyRandom.filter(r => r.status === 'paid');
+    const randomPending = monthlyRandom.filter(r => r.status === 'pending');
+    const randomOverdue = monthlyRandom.filter(r => r.status === 'overdue');
 
+    const randomPaidTotal = randomPaid.reduce((sum, r) => sum + Number(r.value), 0);
+    const randomPendingTotal = randomPending.reduce((sum, r) => sum + Number(r.value), 0);
+    const randomOverdueTotal = randomOverdue.reduce((sum, r) => sum + Number(r.value), 0);
+    const randomTotal = randomPaidTotal + randomPendingTotal + randomOverdueTotal;
+
+    // Investimentos
     const investedTotal = investments
       .filter(i => isCurrentMonth(i.startDate))
       .reduce((sum, i) => sum + Number(i.initialAmount), 0);
 
-    const totalCashOutflows = paidTotal + randomTotal;
-    const balance = incomeTotal - totalCashOutflows;
+    // Já Pago = contas fixas pagas + gastos variáveis pagos
+    const paidTotal = billsPaidTotal + randomPaidTotal;
 
-    // Dinheiro livre = Receita - Todas as contas fixas do mês (pagas + pendentes + vencidas) e variáveis
-    const allBillsTotal = paidTotal + pendingTotal + overdueTotal;
-    const dinheiroLivre = incomeTotal - allBillsTotal - randomTotal;
+    // Saldo do Mês = Receita - Já Pago - Investimento (investimento não torna negativo)
+    const preInvestBalance = incomeTotal - paidTotal;
+    const investmentDeduction = Math.min(investedTotal, Math.max(0, preInvestBalance));
+    const balance = preInvestBalance - investmentDeduction;
+
+    // Total a Pagar = pendentes + atrasadas (fixas + variáveis)
+    const pendingTotal = billsPendingTotal + randomPendingTotal;
+    const overdueTotal = billsOverdueTotal + randomOverdueTotal;
+
+    // Dinheiro Livre = Receita - Tudo (fixas + variáveis + investimentos)
+    const allBillsTotal = billsPaidTotal + billsPendingTotal + billsOverdueTotal;
+    const dinheiroLivre = incomeTotal - allBillsTotal - randomTotal - investedTotal;
 
     return {
       incomeTotal,
       paidTotal,
+      billsPaidTotal,
+      randomPaidTotal,
       pendingTotal,
+      billsPendingTotal,
+      randomPendingTotal,
       overdueTotal,
+      billsOverdueTotal,
+      randomOverdueTotal,
       randomTotal,
       investedTotal,
+      investmentDeduction,
       balance,
       dinheiroLivre,
-      pendingCount: billsPending.length,
-      overdueCount: billsOverdue.length,
-      paidCount: billsPaid.length,
+      pendingCount: billsPending.length + randomPending.length,
+      overdueCount: billsOverdue.length + randomOverdue.length,
+      paidCount: billsPaid.length + randomPaid.length,
       incomeItems: incomes.filter(i => isCurrentMonth(i.date)),
       paidBills: billsPaid,
       pendingBills: billsPending,
       overdueBills: billsOverdue,
-      randomItems: randomExpenses.filter(r => isCurrentMonth(r.date)),
+      randomItems: monthlyRandom,
+      randomPaidItems: randomPaid,
+      randomPendingItems: randomPending,
+      randomOverdueItems: randomOverdue,
       investmentItems: investments.filter(i => isCurrentMonth(i.startDate)),
     };
   }, [currentDate, bills, incomes, randomExpenses, investments]);
@@ -163,7 +189,8 @@ export const Dashboard = () => {
           icon={Wallet}
           colorClass="text-indigo-600"
           bgClass="bg-indigo-50"
-          label="Receitas - Despesas já pagas"
+          subValue={monthlyStats.investmentDeduction > 0 ? `${formatCurrency(monthlyStats.investmentDeduction)} investido` : undefined}
+          label="Receita - Já Pago - Investimento"
           onIconClick={() => setActiveModal('balance')}
         />
         <StatCard
@@ -180,7 +207,7 @@ export const Dashboard = () => {
           icon={TrendingDown}
           colorClass="text-rose-600"
           bgClass="bg-rose-50"
-          label="Contas fixas já quitadas"
+          label="Contas fixas e variáveis quitadas"
           onIconClick={() => setActiveModal('paid')}
         />
         <StatCard
@@ -189,7 +216,7 @@ export const Dashboard = () => {
           icon={DollarSign}
           colorClass={monthlyStats.dinheiroLivre >= 0 ? "text-teal-600" : "text-red-600"}
           bgClass={monthlyStats.dinheiroLivre >= 0 ? "bg-teal-50" : "bg-red-50"}
-          label="Receita - Todas as contas fixas e variáveis"
+          label="Sobra após todas as despesas e investimentos"
           onIconClick={() => setActiveModal('freeMoney')}
         />
       </div>
@@ -210,7 +237,7 @@ export const Dashboard = () => {
           colorClass="text-orange-600"
           bgClass="bg-orange-50"
           subValue={monthlyStats.overdueTotal > 0 ? `${formatCurrency(monthlyStats.overdueTotal)} vencido` : undefined}
-          label="Contas pendentes + atrasadas"
+          label="Contas fixas e variáveis a pagar"
           onIconClick={() => setActiveModal('topay')}
         />
         <StatCard

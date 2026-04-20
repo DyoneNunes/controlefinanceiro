@@ -19,10 +19,17 @@ export type ModalType =
 export interface MonthlyModalData {
   incomeTotal: number;
   paidTotal: number;
+  billsPaidTotal: number;
+  randomPaidTotal: number;
   pendingTotal: number;
+  billsPendingTotal: number;
+  randomPendingTotal: number;
   overdueTotal: number;
+  billsOverdueTotal: number;
+  randomOverdueTotal: number;
   randomTotal: number;
   investedTotal: number;
+  investmentDeduction: number;
   balance: number;
   dinheiroLivre: number;
   pendingCount: number;
@@ -33,6 +40,9 @@ export interface MonthlyModalData {
   pendingBills: any[];
   overdueBills: any[];
   randomItems: any[];
+  randomPaidItems: any[];
+  randomPendingItems: any[];
+  randomOverdueItems: any[];
   investmentItems: any[];
 }
 
@@ -198,12 +208,16 @@ function renderContent(type: ModalType, s: MonthlyModalData) {
               <p className="text-xl font-bold text-emerald-800 mt-0.5">{formatCurrency(s.incomeTotal)}</p>
             </div>
             <div className="bg-rose-50 rounded-xl p-3">
-              <p className="text-xs font-medium text-rose-600">Contas Pagas</p>
+              <p className="text-xs font-medium text-rose-600">Já Pago</p>
               <p className="text-xl font-bold text-rose-800 mt-0.5">{formatCurrency(s.paidTotal)}</p>
+              <p className="text-[10px] text-rose-500 mt-0.5">Fixas: {formatCurrency(s.billsPaidTotal)} · Variáveis: {formatCurrency(s.randomPaidTotal)}</p>
             </div>
-            <div className="bg-amber-50 rounded-xl p-3">
-              <p className="text-xs font-medium text-amber-600">Gastos Variáveis</p>
-              <p className="text-xl font-bold text-amber-800 mt-0.5">{formatCurrency(s.randomTotal)}</p>
+            <div className="bg-purple-50 rounded-xl p-3">
+              <p className="text-xs font-medium text-purple-600">Investimento</p>
+              <p className="text-xl font-bold text-purple-800 mt-0.5">{formatCurrency(s.investmentDeduction)}</p>
+              {s.investedTotal > s.investmentDeduction && (
+                <p className="text-[10px] text-purple-500 mt-0.5">Total aportado: {formatCurrency(s.investedTotal)}</p>
+              )}
             </div>
             <div className="bg-orange-50 rounded-xl p-3">
               <p className="text-xs font-medium text-orange-600">A Pagar</p>
@@ -215,8 +229,8 @@ function renderContent(type: ModalType, s: MonthlyModalData) {
           <div className="bg-gray-50 rounded-xl p-4 space-y-2">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Cálculo do Saldo</p>
             <CalcRow sign="+" label="Receita" value={s.incomeTotal} valueColor="text-emerald-700" />
-            <CalcRow sign="−" label="Contas Pagas" value={s.paidTotal} valueColor="text-rose-600" />
-            <CalcRow sign="−" label="Gastos Variáveis" value={s.randomTotal} valueColor="text-amber-600" />
+            <CalcRow sign="−" label="Já Pago (Fixas + Variáveis)" value={s.paidTotal} valueColor="text-rose-600" />
+            <CalcRow sign="−" label="Investimento" value={s.investmentDeduction} valueColor="text-purple-600" />
             <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-2">
               <span className="font-semibold text-gray-700 flex items-center gap-1.5">
                 <span className="w-4 text-center font-bold text-gray-400">=</span>
@@ -243,13 +257,6 @@ function renderContent(type: ModalType, s: MonthlyModalData) {
               <p className="text-xs text-rose-600 mt-0.5">Atrasadas</p>
             </div>
           </div>
-
-          {s.investedTotal > 0 && (
-            <div className="bg-purple-50 rounded-xl p-3 flex justify-between items-center">
-              <span className="text-sm font-medium text-purple-700">Investido no Mês</span>
-              <span className="font-bold text-purple-800">{formatCurrency(s.investedTotal)}</span>
-            </div>
-          )}
         </div>
       );
 
@@ -273,28 +280,51 @@ function renderContent(type: ModalType, s: MonthlyModalData) {
     case 'paid':
     case 'paidCount':
       return (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className={`rounded-xl p-3 flex justify-between items-center ${type === 'paidCount' ? 'bg-blue-50' : 'bg-rose-50'}`}>
             <span className={`text-sm font-semibold ${type === 'paidCount' ? 'text-blue-700' : 'text-rose-700'}`}>
-              {s.paidBills.length} conta(s) paga(s)
+              {s.paidCount} conta(s) paga(s)
             </span>
             <span className={`font-bold ${type === 'paidCount' ? 'text-blue-800' : 'text-rose-800'}`}>
               {formatCurrency(s.paidTotal)}
             </span>
           </div>
-          <div>
-            {s.paidBills.length === 0
-              ? <EmptyState message="Nenhuma conta paga neste mês" />
-              : s.paidBills.map((bill: any) => (
-                  <ItemRow
-                    key={bill.id}
-                    name={bill.name}
-                    sub={`Pago em ${fmtDate(bill.paidDate || bill.dueDate)}`}
-                    value={Number(bill.value)}
-                    valueColor={type === 'paidCount' ? 'text-blue-700' : 'text-rose-700'}
-                  />
-                ))}
-          </div>
+
+          {/* Contas Fixas Pagas */}
+          {s.paidBills.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Contas Fixas</p>
+              {s.paidBills.map((bill: any) => (
+                <ItemRow
+                  key={bill.id}
+                  name={bill.name}
+                  sub={`Pago em ${fmtDate(bill.paidDate || bill.dueDate)}`}
+                  value={Number(bill.value)}
+                  valueColor={type === 'paidCount' ? 'text-blue-700' : 'text-rose-700'}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Gastos Variáveis Pagos */}
+          {s.randomPaidItems.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Gastos Variáveis</p>
+              {s.randomPaidItems.map((item: any) => (
+                <ItemRow
+                  key={item.id}
+                  name={item.name}
+                  sub={`Pago em ${fmtDate(item.paidDate || item.date)}`}
+                  value={Number(item.value)}
+                  valueColor={type === 'paidCount' ? 'text-blue-700' : 'text-rose-700'}
+                />
+              ))}
+            </div>
+          )}
+
+          {s.paidBills.length === 0 && s.randomPaidItems.length === 0 && (
+            <EmptyState message="Nenhuma conta paga neste mês" />
+          )}
         </div>
       );
 
@@ -308,19 +338,20 @@ function renderContent(type: ModalType, s: MonthlyModalData) {
               {formatCurrency(s.dinheiroLivre)}
             </p>
             <p className={`text-xs mt-1 ${isPositive ? 'text-teal-500' : 'text-red-500'}`}>
-              {isPositive ? 'Sobra após todas as contas fixas e variáveis' : 'Deficit após todas as contas fixas e variáveis'}
+              {isPositive ? 'Sobra após todas as despesas e investimentos' : 'Deficit após todas as despesas e investimentos'}
             </p>
           </div>
 
           <div className="bg-gray-50 rounded-xl p-4 space-y-2">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Como é calculado</p>
             <CalcRow sign="+" label="Receita Total" value={s.incomeTotal} valueColor="text-emerald-700" />
-            <CalcRow sign="−" label="Contas Pagas" value={s.paidTotal} valueColor="text-rose-600" />
-            <CalcRow sign="−" label="Pendentes" value={s.pendingTotal} valueColor="text-amber-600" />
-            {s.overdueTotal > 0 && (
-              <CalcRow sign="−" label="Atrasadas" value={s.overdueTotal} valueColor="text-red-600" />
+            <CalcRow sign="−" label="Contas Fixas Pagas" value={s.billsPaidTotal} valueColor="text-rose-600" />
+            <CalcRow sign="−" label="Contas Fixas Pendentes" value={s.billsPendingTotal} valueColor="text-amber-600" />
+            {s.billsOverdueTotal > 0 && (
+              <CalcRow sign="−" label="Contas Fixas Atrasadas" value={s.billsOverdueTotal} valueColor="text-red-600" />
             )}
             <CalcRow sign="−" label="Gastos Variáveis" value={s.randomTotal} valueColor="text-amber-600" />
+            <CalcRow sign="−" label="Investimentos" value={s.investedTotal} valueColor="text-purple-600" />
             <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-2">
               <span className="font-semibold text-gray-700 flex items-center gap-1.5">
                 <span className="w-4 text-center font-bold text-gray-400">=</span>
@@ -334,7 +365,7 @@ function renderContent(type: ModalType, s: MonthlyModalData) {
 
           {s.pendingBills.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Contas Pendentes</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Contas Fixas Pendentes</p>
               {s.pendingBills.slice(0, 5).map((bill: any) => (
                 <ItemRow key={bill.id} name={bill.name} sub={`Vence ${fmtDate(bill.dueDate)}`} value={Number(bill.value)} valueColor="text-amber-700" />
               ))}
@@ -369,16 +400,17 @@ function renderContent(type: ModalType, s: MonthlyModalData) {
         <div className="space-y-4">
           <div className="bg-orange-50 rounded-xl p-3 flex justify-between items-center">
             <span className="text-sm font-semibold text-orange-700">
-              {s.pendingBills.length + s.overdueBills.length} conta(s) a pagar
+              {s.pendingBills.length + s.overdueBills.length + s.randomPendingItems.length + s.randomOverdueItems.length} conta(s) a pagar
             </span>
             <span className="font-bold text-orange-800">{formatCurrency(s.pendingTotal + s.overdueTotal)}</span>
           </div>
 
+          {/* Contas Fixas Atrasadas */}
           {s.overdueBills.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <AlertCircle className="w-4 h-4 text-red-500" />
-                <p className="text-sm font-semibold text-red-600">Atrasadas — {formatCurrency(s.overdueTotal)}</p>
+                <p className="text-sm font-semibold text-red-600">Fixas Atrasadas — {formatCurrency(s.billsOverdueTotal)}</p>
               </div>
               {s.overdueBills.map((bill: any) => (
                 <ItemRow key={bill.id} name={bill.name} sub={`Venceu ${fmtDate(bill.dueDate)}`} value={Number(bill.value)} valueColor="text-red-600" />
@@ -386,11 +418,25 @@ function renderContent(type: ModalType, s: MonthlyModalData) {
             </div>
           )}
 
+          {/* Gastos Variáveis Atrasados */}
+          {s.randomOverdueItems.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                <p className="text-sm font-semibold text-red-600">Variáveis Atrasados — {formatCurrency(s.randomOverdueTotal)}</p>
+              </div>
+              {s.randomOverdueItems.map((item: any) => (
+                <ItemRow key={item.id} name={item.name} sub={`Venceu ${fmtDate(item.date)}`} value={Number(item.value)} valueColor="text-red-600" />
+              ))}
+            </div>
+          )}
+
+          {/* Contas Fixas Pendentes */}
           {s.pendingBills.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Clock className="w-4 h-4 text-amber-500" />
-                <p className="text-sm font-semibold text-amber-600">Pendentes — {formatCurrency(s.pendingTotal)}</p>
+                <p className="text-sm font-semibold text-amber-600">Fixas Pendentes — {formatCurrency(s.billsPendingTotal)}</p>
               </div>
               {s.pendingBills.map((bill: any) => (
                 <ItemRow key={bill.id} name={bill.name} sub={`Vence ${fmtDate(bill.dueDate)}`} value={Number(bill.value)} valueColor="text-amber-700" />
@@ -398,7 +444,20 @@ function renderContent(type: ModalType, s: MonthlyModalData) {
             </div>
           )}
 
-          {s.pendingBills.length === 0 && s.overdueBills.length === 0 && (
+          {/* Gastos Variáveis Pendentes */}
+          {s.randomPendingItems.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-4 h-4 text-amber-500" />
+                <p className="text-sm font-semibold text-amber-600">Variáveis Pendentes — {formatCurrency(s.randomPendingTotal)}</p>
+              </div>
+              {s.randomPendingItems.map((item: any) => (
+                <ItemRow key={item.id} name={item.name} sub={`Vence ${fmtDate(item.date)}`} value={Number(item.value)} valueColor="text-amber-700" />
+              ))}
+            </div>
+          )}
+
+          {s.pendingBills.length === 0 && s.overdueBills.length === 0 && s.randomPendingItems.length === 0 && s.randomOverdueItems.length === 0 && (
             <EmptyState message="Nenhuma conta pendente ou atrasada" />
           )}
         </div>
@@ -433,35 +492,65 @@ function renderContent(type: ModalType, s: MonthlyModalData) {
 
     case 'pending':
       return (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="bg-amber-50 rounded-xl p-3 flex justify-between items-center">
             <span className="text-sm font-semibold text-amber-700">{s.pendingCount} conta(s) pendente(s)</span>
             <span className="font-bold text-amber-800">{formatCurrency(s.pendingTotal)}</span>
           </div>
-          <div>
-            {s.pendingBills.length === 0
-              ? <EmptyState message="Nenhuma conta pendente neste mês" />
-              : s.pendingBills.map((bill: any) => (
-                  <ItemRow key={bill.id} name={bill.name} sub={`Vence ${fmtDate(bill.dueDate)}`} value={Number(bill.value)} valueColor="text-amber-700" />
-                ))}
-          </div>
+
+          {s.pendingBills.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Contas Fixas</p>
+              {s.pendingBills.map((bill: any) => (
+                <ItemRow key={bill.id} name={bill.name} sub={`Vence ${fmtDate(bill.dueDate)}`} value={Number(bill.value)} valueColor="text-amber-700" />
+              ))}
+            </div>
+          )}
+
+          {s.randomPendingItems.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Gastos Variáveis</p>
+              {s.randomPendingItems.map((item: any) => (
+                <ItemRow key={item.id} name={item.name} sub={`Vence ${fmtDate(item.date)}`} value={Number(item.value)} valueColor="text-amber-700" />
+              ))}
+            </div>
+          )}
+
+          {s.pendingBills.length === 0 && s.randomPendingItems.length === 0 && (
+            <EmptyState message="Nenhuma conta pendente neste mês" />
+          )}
         </div>
       );
 
     case 'overdue':
       return (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="bg-rose-50 rounded-xl p-3 flex justify-between items-center">
             <span className="text-sm font-semibold text-rose-700">{s.overdueCount} conta(s) atrasada(s)</span>
             <span className="font-bold text-rose-800">{formatCurrency(s.overdueTotal)}</span>
           </div>
-          <div>
-            {s.overdueBills.length === 0
-              ? <EmptyState message="Nenhuma conta atrasada" />
-              : s.overdueBills.map((bill: any) => (
-                  <ItemRow key={bill.id} name={bill.name} sub={`Venceu ${fmtDate(bill.dueDate)}`} value={Number(bill.value)} valueColor="text-rose-700" />
-                ))}
-          </div>
+
+          {s.overdueBills.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Contas Fixas</p>
+              {s.overdueBills.map((bill: any) => (
+                <ItemRow key={bill.id} name={bill.name} sub={`Venceu ${fmtDate(bill.dueDate)}`} value={Number(bill.value)} valueColor="text-rose-700" />
+              ))}
+            </div>
+          )}
+
+          {s.randomOverdueItems.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Gastos Variáveis</p>
+              {s.randomOverdueItems.map((item: any) => (
+                <ItemRow key={item.id} name={item.name} sub={`Venceu ${fmtDate(item.date)}`} value={Number(item.value)} valueColor="text-rose-700" />
+              ))}
+            </div>
+          )}
+
+          {s.overdueBills.length === 0 && s.randomOverdueItems.length === 0 && (
+            <EmptyState message="Nenhuma conta atrasada" />
+          )}
         </div>
       );
 

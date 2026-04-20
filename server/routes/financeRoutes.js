@@ -11,6 +11,7 @@ router.get('/incomes', financeController.getIncomes);
 router.post('/incomes', financeController.createIncome);
 router.put('/incomes/:id', financeController.updateIncome); // E2EE update + ownership validation
 router.delete('/incomes/:id', financeController.deleteIncome);
+router.patch('/incomes/:id/receive', financeController.markIncomeAsReceived);
 
 // Investments
 router.get('/investments', financeController.getInvestments);

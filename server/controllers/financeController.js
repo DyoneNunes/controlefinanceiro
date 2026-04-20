@@ -31,9 +31,9 @@ const isValidDate = (val) => !isNaN(Date.parse(val));
 exports.getIncomes = async (req, res) => {
     try {
         const { rows } = await pool.query(
-            `SELECT id, user_id, group_id, description, value, date,
+            `SELECT id, user_id, group_id, description, value, date, status, received_date,
                     encrypted_data, encryption_iv, created_at
-             FROM incomes WHERE group_id = $1 ORDER BY date DESC`,
+             FROM incomes WHERE group_id = $1 AND deleted_at IS NULL ORDER BY date DESC`,
             [req.group.id]
         );
         res.json(rows.map(r => ({
@@ -43,6 +43,9 @@ exports.getIncomes = async (req, res) => {
             description: r.description,
             value: r.value ? parseFloat(r.value) : null,
             date: r.date ? r.date.toISOString() : null,
+            status: r.status || 'pending',
+            receivedDate: r.received_date ? r.received_date.toISOString() : null,
+            createdAt: r.created_at ? r.created_at.toISOString() : null,
             encryptedData: r.encrypted_data,
             encryptionIv: r.encryption_iv,
             isEncrypted: !!r.encrypted_data,
@@ -87,11 +90,31 @@ exports.createIncome = async (req, res) => {
 
 exports.deleteIncome = async (req, res) => {
     try {
-        await pool.query('DELETE FROM incomes WHERE id = $1 AND group_id = $2', [req.params.id, req.group.id]);
+        await pool.query('UPDATE incomes SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND group_id = $2', [req.params.id, req.group.id]);
         res.json({ message: 'Deleted' });
     } catch (err) {
         console.error('Error deleting income:', err);
         res.status(500).json({ error: 'Erro ao excluir receita' });
+    }
+};
+
+/**
+ * PATCH /api/finance/incomes/:id/receive
+ *
+ * Marca uma receita como recebida.
+ */
+exports.markIncomeAsReceived = async (req, res) => {
+    try {
+        const result = await pool.query(
+            `UPDATE incomes SET status = 'received', received_date = NOW()
+             WHERE id = $1 AND group_id = $2 RETURNING *`,
+            [req.params.id, req.group.id]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Receita não encontrada' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Error marking income as received:', err);
+        res.status(500).json({ error: 'Erro ao marcar receita como recebida' });
     }
 };
 
@@ -144,7 +167,7 @@ exports.getInvestments = async (req, res) => {
         const { rows } = await pool.query(
             `SELECT id, user_id, group_id, name, initial_amount, cdi_percent,
                     start_date, duration_months, encrypted_data, encryption_iv, created_at
-             FROM investments WHERE group_id = $1 ORDER BY created_at DESC`,
+             FROM investments WHERE group_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC`,
             [req.group.id]
         );
         res.json(rows.map(r => ({
@@ -205,7 +228,7 @@ exports.createInvestment = async (req, res) => {
 
 exports.deleteInvestment = async (req, res) => {
     try {
-        await pool.query('DELETE FROM investments WHERE id = $1 AND group_id = $2', [req.params.id, req.group.id]);
+        await pool.query('UPDATE investments SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND group_id = $2', [req.params.id, req.group.id]);
         res.json({ message: 'Deleted' });
     } catch (err) {
         console.error('Error deleting investment:', err);
@@ -259,7 +282,7 @@ exports.getRandomExpenses = async (req, res) => {
         const { rows } = await pool.query(
             `SELECT id, user_id, group_id, name, value, date, status, paid_date,
                     encrypted_data, encryption_iv, created_at
-             FROM random_expenses WHERE group_id = $1 ORDER BY date DESC`,
+             FROM random_expenses WHERE group_id = $1 AND deleted_at IS NULL ORDER BY date DESC`,
             [req.group.id]
         );
         res.json(rows.map(r => ({
@@ -315,7 +338,7 @@ exports.createRandomExpense = async (req, res) => {
 
 exports.deleteRandomExpense = async (req, res) => {
     try {
-        await pool.query('DELETE FROM random_expenses WHERE id = $1 AND group_id = $2', [req.params.id, req.group.id]);
+        await pool.query('UPDATE random_expenses SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND group_id = $2', [req.params.id, req.group.id]);
         res.json({ message: 'Deleted' });
     } catch (err) {
         console.error('Error deleting random expense:', err);

@@ -16,12 +16,16 @@ export const ResetPassword: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirm) {
-      setFeedback({ message: 'As senhas não coincidem.', type: 'error' });
-      return;
-    }
     if (!token) {
       setFeedback({ message: 'Token inválido ou ausente.', type: 'error' });
+      return;
+    }
+    if (password.trim().length < 4) {
+      setFeedback({ message: 'A senha deve ter pelo menos 4 caracteres.', type: 'error' });
+      return;
+    }
+    if (password !== confirm) {
+      setFeedback({ message: 'As senhas não coincidem.', type: 'error' });
       return;
     }
     setLoading(true);
@@ -31,15 +35,15 @@ export const ResetPassword: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, password })
       });
-      const data = await res.json();
       if (res.ok) {
         setFeedback({ message: 'Senha redefinida com sucesso! Redirecionando...', type: 'success' });
         setTimeout(() => navigate('/login'), 2500);
       } else {
-        setFeedback({ message: data.error || 'Erro ao redefinir senha.', type: 'error' });
+        const data = await res.json().catch(() => null);
+        setFeedback({ message: data?.error || 'Erro ao redefinir senha.', type: 'error' });
       }
     } catch {
-      setFeedback({ message: 'Erro de conexão com o servidor.', type: 'error' });
+      setFeedback({ message: 'Erro de conexão com o servidor. Verifique sua internet e tente novamente.', type: 'error' });
     } finally {
       setLoading(false);
     }

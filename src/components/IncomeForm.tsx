@@ -2,18 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { useGroup } from '../context/GroupContext';
 import { X, TrendingUp, DollarSign, Calendar, Wallet, FileText } from 'lucide-react';
+import type { Income } from '../types';
 
 interface IncomeFormProps {
   onClose: () => void;
+  income?: Income;
 }
 
-export const IncomeForm: React.FC<IncomeFormProps> = ({ onClose }) => {
-  const { addIncome } = useFinance();
+export const IncomeForm: React.FC<IncomeFormProps> = ({ onClose, income }) => {
+  const { addIncome, updateIncome } = useFinance();
   const { groups, currentGroup } = useGroup();
+  const isEditing = !!income;
+
   const [formData, setFormData] = useState({
-    description: '',
-    value: '',
-    date: ''
+    description: income?.description || '',
+    value: income?.value?.toString() || '',
+    date: income?.date ? income.date.split('T')[0] : ''
   });
   const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(currentGroup?.id);
 
@@ -28,16 +32,25 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onClose }) => {
     };
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.description || !formData.value || !formData.date || !selectedGroupId) return;
+    if (!formData.description || !formData.value || !formData.date) return;
 
-    addIncome({
-      description: formData.description,
-      value: Number(formData.value),
-      date: new Date(formData.date).toISOString(),
-      groupId: selectedGroupId
-    });
+    if (isEditing && income) {
+      await updateIncome(income.id, {
+        description: formData.description,
+        value: Number(formData.value),
+        date: new Date(formData.date).toISOString(),
+      });
+    } else {
+      if (!selectedGroupId) return;
+      await addIncome({
+        description: formData.description,
+        value: Number(formData.value),
+        date: new Date(formData.date).toISOString(),
+        groupId: selectedGroupId
+      });
+    }
     onClose();
   };
 
@@ -54,8 +67,8 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onClose }) => {
               <TrendingUp className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Nova Entrada</h2>
-              <p className="text-sm text-gray-400">Registre uma nova receita</p>
+              <h2 className="text-lg font-bold text-gray-900">{isEditing ? 'Editar Entrada' : 'Nova Entrada'}</h2>
+              <p className="text-sm text-gray-400">{isEditing ? 'Altere os dados da receita' : 'Registre uma nova receita'}</p>
             </div>
           </div>
           <button
@@ -116,25 +129,27 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onClose }) => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Carteira</label>
-              <div className="relative">
-                <select
-                  required
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50/80 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-900 appearance-none cursor-pointer"
-                  value={selectedGroupId}
-                  onChange={e => setSelectedGroupId(e.target.value)}
-                  disabled={groups.length === 0}
-                >
-                  <option value="">Selecione uma carteira</option>
-                  {groups.map(group => (
-                    <option key={group.id} value={group.id}>{group.name}</option>
-                  ))}
-                </select>
-                <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            {!isEditing && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Carteira</label>
+                <div className="relative">
+                  <select
+                    required
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50/80 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-900 appearance-none cursor-pointer"
+                    value={selectedGroupId}
+                    onChange={e => setSelectedGroupId(e.target.value)}
+                    disabled={groups.length === 0}
+                  >
+                    <option value="">Selecione uma carteira</option>
+                    {groups.map(group => (
+                      <option key={group.id} value={group.id}>{group.name}</option>
+                    ))}
+                  </select>
+                  <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                </div>
+                {groups.length === 0 && <p className="text-rose-500 text-xs mt-1.5 font-medium">Nenhuma carteira disponível.</p>}
               </div>
-              {groups.length === 0 && <p className="text-rose-500 text-xs mt-1.5 font-medium">Nenhuma carteira disponível.</p>}
-            </div>
+            )}
           </div>
 
           {/* Footer */}
@@ -149,9 +164,9 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onClose }) => {
             <button
               type="submit"
               className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white font-semibold shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100"
-              disabled={groups.length === 0}
+              disabled={!isEditing && groups.length === 0}
             >
-              Adicionar Entrada
+              {isEditing ? 'Salvar Alterações' : 'Adicionar Entrada'}
             </button>
           </div>
         </form>

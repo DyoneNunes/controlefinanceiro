@@ -36,6 +36,8 @@ import {
   unwrapMasterKey,
   encryptData,
   decryptData,
+  bufferToBase64,
+  base64ToUint8Array,
 } from '../utils/crypto';
 import type { EncryptedPayload } from '../utils/crypto';
 
@@ -56,6 +58,8 @@ interface CryptoContextType {
   decrypt: <T = unknown>(ciphertext: string, iv: string) => Promise<T>;
   /** Inicializa o sistema de criptografia com a senha do usuário */
   initializeCrypto: (password: string, token: string) => Promise<void>;
+  /** Restaura a MEK do sessionStorage (para refresh sem senha) */
+  restoreCrypto: () => Promise<boolean>;
   /** Re-encapsula a MEK com uma nova senha (para troca de senha) */
   rewrapForPasswordChange: (oldPassword: string, newPassword: string, token: string) => Promise<void>;
   /** Limpa a chave da memória (logout) */
@@ -75,6 +79,35 @@ export const useCrypto = () => {
 // ============================================================================
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+const MEK_SESSION_KEY = 'finance_mek_session';
+
+/**
+ * Exporta a MEK para sessionStorage em formato Base64.
+ * O sessionStorage é limpo automaticamente ao fechar a aba/janela,
+ * e é protegido pela same-origin policy do navegador.
+ */
+async function persistMek(mek: CryptoKey): Promise<void> {
+  const raw = await crypto.subtle.exportKey('raw', mek);
+  sessionStorage.setItem(MEK_SESSION_KEY, bufferToBase64(raw));
+}
+
+/**
+ * Importa a MEK do sessionStorage de volta como CryptoKey.
+ * Retorna null se não houver MEK armazenada.
+ */
+async function loadPersistedMek(): Promise<CryptoKey | null> {
+  const stored = sessionStorage.getItem(MEK_SESSION_KEY);
+  if (!stored) return null;
+  const raw = base64ToUint8Array(stored);
+  return crypto.subtle.importKey(
+    'raw',
+    raw as BufferSource,
+    { name: 'AES-GCM', length: 256 },
+    true,
+    ['encrypt', 'decrypt']
+  );
+}
 
 export const CryptoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   /**
@@ -112,6 +145,7 @@ export const CryptoProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const mek = await unwrapMasterKey(wrapped_mek, mek_iv, dek);
 
         mekRef.current = mek;
+        await persistMek(mek);
         setIsFirstSetup(false);
         setIsReady(true);
       } else if (keysRes.status === 404) {
@@ -142,6 +176,7 @@ export const CryptoProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
 
         mekRef.current = mek;
+        await persistMek(mek);
         setIsFirstSetup(true);
         setIsReady(true);
       } else {
@@ -154,6 +189,25 @@ export const CryptoProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       throw error;
     } finally {
       setIsInitializing(false);
+    }
+  }, []);
+
+  /**
+   * Restaura a MEK do sessionStorage (sem precisar da senha).
+   * Usado no refresh da página quando o token JWT ainda é válido.
+   */
+  const restoreCrypto = useCallback(async (): Promise<boolean> => {
+    try {
+      const mek = await loadPersistedMek();
+      if (mek) {
+        mekRef.current = mek;
+        setIsReady(true);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Falha ao restaurar MEK do sessionStorage:', error);
+      return false;
     }
   }, []);
 
@@ -235,6 +289,7 @@ export const CryptoProvider: React.FC<{ children: React.ReactNode }> = ({ childr
    */
   const clearCrypto = useCallback(() => {
     mekRef.current = null;
+    sessionStorage.removeItem(MEK_SESSION_KEY);
     setIsReady(false);
     setIsFirstSetup(false);
   }, []);
@@ -248,6 +303,7 @@ export const CryptoProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         encrypt,
         decrypt,
         initializeCrypto,
+        restoreCrypto,
         rewrapForPasswordChange,
         clearCrypto,
       }}

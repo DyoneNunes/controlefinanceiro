@@ -75,8 +75,10 @@ exports.resetPassword = async (req, res) => {
     const { token, password } = req.body;
     if (!token || !password || password.trim().length < 4)
         return res.status(400).json({ error: 'Token e senha são obrigatórios (mínimo 4 caracteres)' });
+
+    const client = await pool.connect();
     try {
-        const tokenRes = await pool.query(
+        const tokenRes = await client.query(
             'SELECT * FROM password_reset_tokens WHERE token = $1 AND used = FALSE AND expires_at > NOW()',
             [token]
         );
@@ -85,10 +87,20 @@ exports.resetPassword = async (req, res) => {
 
         const { user_id } = tokenRes.rows[0];
         const hash = await bcrypt.hash(password.trim(), 10);
-        await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, user_id]);
-        await pool.query('UPDATE password_reset_tokens SET used = TRUE WHERE token = $1', [token]);
+
+        await client.query('BEGIN');
+        await client.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, user_id]);
+        await client.query('UPDATE password_reset_tokens SET used = TRUE WHERE token = $1', [token]);
+        await client.query('COMMIT');
+
         res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) {
+        await client.query('ROLLBACK').catch(() => {});
+        console.error('Erro ao redefinir senha:', err);
+        res.status(500).json({ error: 'Erro ao redefinir senha. Tente novamente.' });
+    } finally {
+        client.release();
+    }
 };
 
 exports.getGroups = async (req, res) => {

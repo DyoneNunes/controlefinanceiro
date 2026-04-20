@@ -11,5 +11,6 @@ router.post('/', billController.createBill);
 router.put('/:id', billController.updateBill); // E2EE update + ownership validation
 router.delete('/:id', billController.deleteBill);
 router.patch('/:id/pay', billController.payBill);
+router.post('/:id/installments', billController.createInstallments);
 
 module.exports = router;

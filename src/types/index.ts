@@ -8,6 +8,9 @@ export interface Bill {
   status: BillStatus;
   paidDate?: string | null; // ISO Date String
   groupId: string;
+  installmentGroup?: string | null;
+  installmentNumber?: number | null;
+  installmentTotal?: number | null;
 }
 
 export interface Income {
@@ -16,6 +19,9 @@ export interface Income {
   value: number;
   date: string; // ISO Date String
   groupId: string;
+  status?: 'pending' | 'received';
+  receivedDate?: string | null;
+  createdAt?: string | null;
 }
 
 export interface Investment {

@@ -4,6 +4,7 @@ import { LayoutDashboard, Receipt, TrendingUp, LineChart, LogOut, User, Shuffle,
 import { useAuth } from '../context/AuthContext';
 import { useGroup } from '../context/GroupContext';
 import clsx from 'clsx';
+import LogoSvg from '../assets/Logo.svg';
 
 const navItems = [
   { to: '/news', label: 'Notificações', icon: Bell, activeClass: 'bg-orange-50 text-orange-700' },
@@ -50,10 +51,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             }
           }
         }
-      } catch {}
+      } catch { }
     };
     checkNews();
-    
+
     // Configura um polling para garantir que o aviso apareça
     // mesmo que o usuário não clique em nada ou alterne abas
     const interval = setInterval(checkNews, 10000);
@@ -103,69 +104,67 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const SidebarContent = () => (
     <>
       <div className="p-6">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-          MeuDin
-        </h1>
+        <img src={LogoSvg} alt="MeuDin" className="h-36 w-auto" />
       </div>
 
       <div className="px-6 pb-2 relative" ref={walletDropdownRef}>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Carteira</p>
-          <button
-            onClick={() => groups.length > 0 && setIsWalletDropdownOpen(!isWalletDropdownOpen)}
-            className={clsx(
-              "w-full flex items-center justify-between text-sm font-bold text-gray-700 truncate rounded-lg px-3 py-2 transition-colors",
-              groups.length > 0 ? "hover:bg-gray-100 cursor-pointer" : "cursor-default"
-            )}
-          >
-            <span className="truncate">
-              {groupLoading ? 'Carregando...' : currentGroup?.name || (groups.length === 0 ? 'Nenhuma carteira' : 'Selecione uma carteira')}
-            </span>
-            {groups.length > 1 && <ChevronDown className={clsx("w-4 h-4 ml-1 text-gray-400 transition-transform", isWalletDropdownOpen && "rotate-180")} />}
-          </button>
-          {isWalletDropdownOpen && groups.length > 0 && (
-            <div className="absolute left-6 right-6 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 max-h-60 overflow-y-auto">
-              {groups.map((group) => (
-                <button
-                  key={group.id}
-                  onClick={() => { selectGroup(group.id); setIsWalletDropdownOpen(false); }}
-                  className={clsx(
-                    "w-full flex items-center justify-between px-3 py-2 text-sm transition-colors",
-                    currentGroup?.id === group.id ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"
-                  )}
-                >
-                  <span className="truncate">{group.name}</span>
-                  {currentGroup?.id === group.id && <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />}
-                </button>
-              ))}
-            </div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Carteira</p>
+        <button
+          onClick={() => groups.length > 0 && setIsWalletDropdownOpen(!isWalletDropdownOpen)}
+          className={clsx(
+            "w-full flex items-center justify-between text-sm font-bold text-gray-700 truncate rounded-lg px-3 py-2 transition-colors",
+            groups.length > 0 ? "hover:bg-gray-100 cursor-pointer" : "cursor-default"
           )}
+        >
+          <span className="truncate">
+            {groupLoading ? 'Carregando...' : currentGroup?.name || (groups.length === 0 ? 'Nenhuma carteira' : 'Selecione uma carteira')}
+          </span>
+          {groups.length > 1 && <ChevronDown className={clsx("w-4 h-4 ml-1 text-gray-400 transition-transform", isWalletDropdownOpen && "rotate-180")} />}
+        </button>
+        {isWalletDropdownOpen && groups.length > 0 && (
+          <div className="absolute left-6 right-6 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 max-h-60 overflow-y-auto">
+            {groups.map((group) => (
+              <button
+                key={group.id}
+                onClick={() => { selectGroup(group.id); setIsWalletDropdownOpen(false); }}
+                className={clsx(
+                  "w-full flex items-center justify-between px-3 py-2 text-sm transition-colors",
+                  currentGroup?.id === group.id ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"
+                )}
+              >
+                <span className="truncate">{group.name}</span>
+                {currentGroup?.id === group.id && <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="px-6 pb-6 pt-4">
-         <div className="bg-gray-50 rounded-xl p-3 flex items-center space-x-3 border border-gray-100">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-              <User className="w-4 h-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.username}
-              </p>
-              <p className="text-xs text-gray-500 capitalize">
-                {currentGroup?.role === 'admin' ? 'Administrador' : currentGroup?.role === 'editor' ? 'Editor' : 'Visualizador'}
-              </p>
-            </div>
-         </div>
+        <div className="bg-gray-50 rounded-xl p-3 flex items-center space-x-3 border border-gray-100">
+          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+            <User className="w-4 h-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {user?.username}
+            </p>
+            <p className="text-xs text-gray-500 capitalize">
+              {currentGroup?.role === 'admin' ? 'Administrador' : currentGroup?.role === 'editor' ? 'Editor' : 'Visualizador'}
+            </p>
+          </div>
+        </div>
 
-         <div className="flex gap-2 mt-3">
-            <button onClick={handleCreateGroup} className="flex-1 flex items-center justify-center py-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg text-[10px] font-semibold transition-colors">
-              <Plus className="w-3 h-3 mr-1" /> Nova Carteira
+        <div className="flex gap-2 mt-3">
+          <button onClick={handleCreateGroup} className="flex-1 flex items-center justify-center py-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg text-[10px] font-semibold transition-colors">
+            <Plus className="w-3 h-3 mr-1" /> Nova Carteira
+          </button>
+          {currentGroup?.role === 'admin' && (
+            <button onClick={handleInvite} className="flex-1 flex items-center justify-center py-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg text-[10px] font-semibold transition-colors">
+              <UserPlus className="w-3 h-3 mr-1" /> Compartilhar
             </button>
-            {currentGroup?.role === 'admin' && (
-              <button onClick={handleInvite} className="flex-1 flex items-center justify-center py-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg text-[10px] font-semibold transition-colors">
-                <UserPlus className="w-3 h-3 mr-1" /> Compartilhar
-              </button>
-            )}
-         </div>
+          )}
+        </div>
       </div>
 
       <nav className="flex-1 px-4 space-y-2">
@@ -266,9 +265,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-          MeuDin
-        </h1>
+        <img src={LogoSvg} alt="MeuDin" className="h-24 w-auto max-w-[200px]" />
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors"
@@ -290,11 +287,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </div>
       )}
 
-      <main 
-        className={clsx("flex-1 p-4 md:p-8 min-h-screen pt-16 md:pt-8 transition-all duration-300", isSidebarCollapsed ? "md:ml-16" : "md:ml-64")}
+      <main
+        className={clsx("flex-1 flex flex-col min-h-screen p-4 md:p-8 pt-16 md:pt-8 transition-all duration-300", isSidebarCollapsed ? "md:ml-16" : "md:ml-64")}
         style={{ '--sidebar-offset': isSidebarCollapsed ? '64px' : '256px' } as React.CSSProperties}
       >
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto w-full flex-1 flex flex-col">
           {children}
         </div>
       </main>
