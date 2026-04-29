@@ -47,6 +47,7 @@ app.use('/api', require('./routes/publicRoutes'));
 app.use('/api/encryption', encryptionRoutes);
 app.use('/api/bills', billRoutes);
 app.use('/api/ai', aiImportRoutes);
+app.use('/api/feedback', require('./routes/feedbackRoutes'));
 app.use('/api', financeRoutes);
 
 app.use('/public', express.static(require('path').join(__dirname, 'public')));

@@ -30,3 +30,7 @@ dist-ssr
 *.tmp
 debug_*.js
 debug_*.cjs
+
+# Backups e atalhos locais (nao versionar — contem dumps do DB e helpers pessoais)
+backups/
+update.bash

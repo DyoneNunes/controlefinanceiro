@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Lock, User, Plus, Pencil, Trash2, X, Check, AlertCircle, LogOut, Users, Shield, Mail, Send, MessageSquare, ArrowLeft, RefreshCw, Bell } from 'lucide-react';
-import { fetchAllFeedbackMessages, sendAdminReply } from '../services/feedbackService';
+import {
+  fetchAllFeedbackMessages,
+  sendAdminReply,
+  streamAdminMessages,
+  signalAdminTyping,
+} from '../services/feedbackService';
 import type { FeedbackMessage } from '../services/feedbackService';
 import { decryptFeedback, encryptFeedback } from '../utils/feedbackCrypto';
 
@@ -152,6 +157,11 @@ const AdminFeedbackPanel: React.FC<{ onClose: () => void; onUnreadChange: (n: nu
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const lastTypingSentAt = useRef<number>(0);
+
+  // Per-thread "user is typing" timestamps.
+  const [typingThreads, setTypingThreads] = useState<Record<string, number>>({});
+  const typingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const load = async () => {
     const msgs = await fetchAllFeedbackMessages();
@@ -188,6 +198,75 @@ const AdminFeedbackPanel: React.FC<{ onClose: () => void; onUnreadChange: (n: nu
 
   useEffect(() => { load(); }, []);
 
+  // Realtime: append SSE-delivered messages to the right thread.
+  useEffect(() => {
+    const close = streamAdminMessages({
+      onMessage: async (raw) => {
+        let text = '(mensagem cifrada)';
+        try { text = await decryptFeedback({ ciphertext: raw.ciphertext, iv: raw.iv }, raw.thread_id); }
+        catch { /* keep placeholder */ }
+        setDecryptedMap(prev => (prev[raw.id] ? prev : { ...prev, [raw.id]: text }));
+        setThreads(prev => {
+          const seen = getSeenIds();
+          const idx = prev.findIndex(t => t.threadId === raw.thread_id);
+          let next: ThreadSummary[];
+          if (idx >= 0) {
+            const existing = prev[idx];
+            if (existing.messages.some(m => m.id === raw.id)) return prev;
+            const messages = [...existing.messages, raw];
+            const updated: ThreadSummary = {
+              ...existing,
+              messages,
+              lastAt: raw.created_at,
+              unread: messages.filter(m => m.sender === 'user' && !seen.has(m.id)).length,
+            };
+            next = [...prev];
+            next[idx] = updated;
+          } else {
+            next = [...prev, {
+              threadId: raw.thread_id,
+              messages: [raw],
+              lastAt: raw.created_at,
+              unread: raw.sender === 'user' && !seen.has(raw.id) ? 1 : 0,
+            }];
+          }
+          next.sort((a, b) => b.lastAt.localeCompare(a.lastAt));
+          onUnreadChange(next.reduce((s, t) => s + t.unread, 0));
+          return next;
+        });
+        // A real message from the user supersedes any typing indicator.
+        if (raw.sender === 'user') {
+          setTypingThreads(prev => {
+            if (!(raw.thread_id in prev)) return prev;
+            const next = { ...prev };
+            delete next[raw.thread_id];
+            return next;
+          });
+        }
+      },
+      onTyping: (ev) => {
+        if (ev.sender !== 'user') return;
+        setTypingThreads(prev => ({ ...prev, [ev.thread_id]: ev.at }));
+        const existing = typingTimers.current[ev.thread_id];
+        if (existing) clearTimeout(existing);
+        typingTimers.current[ev.thread_id] = setTimeout(() => {
+          setTypingThreads(prev => {
+            if (!(ev.thread_id in prev)) return prev;
+            const next = { ...prev };
+            delete next[ev.thread_id];
+            return next;
+          });
+          delete typingTimers.current[ev.thread_id];
+        }, 4000);
+      },
+    });
+    return () => {
+      close();
+      Object.values(typingTimers.current).forEach(clearTimeout);
+      typingTimers.current = {};
+    };
+  }, [onUnreadChange]);
+
   useEffect(() => {
     if (selectedId) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [selectedId, threads]);
@@ -205,13 +284,60 @@ const AdminFeedbackPanel: React.FC<{ onClose: () => void; onUnreadChange: (n: nu
 
   const handleReply = async () => {
     if (!replyText.trim() || !selectedId || sending) return;
+    const text = replyText.trim();
+    const tid = selectedId;
+    const tempId = `temp-${Date.now()}`;
+    const tempMsg: FeedbackMessage = {
+      id: tempId,
+      thread_id: tid,
+      ciphertext: '',
+      iv: '',
+      sender: 'admin',
+      created_at: new Date().toISOString(),
+    };
+
     setSending(true);
+    setReplyText('');
+    // Optimistic insert — admin sees their reply immediately. The SSE arrival
+    // is deduped by id once we swap tempId for the real one.
+    setDecryptedMap(prev => ({ ...prev, [tempId]: text }));
+    setThreads(prev => prev.map(t =>
+      t.threadId === tid
+        ? { ...t, messages: [...t.messages, tempMsg], lastAt: tempMsg.created_at }
+        : t
+    ));
+
     try {
-      const enc = await encryptFeedback(replyText.trim(), selectedId);
-      await sendAdminReply({ thread_id: selectedId, ciphertext: enc.ciphertext, iv: enc.iv });
-      setReplyText('');
-      await load();
+      const enc = await encryptFeedback(text, tid);
+      const saved = await sendAdminReply({ thread_id: tid, ciphertext: enc.ciphertext, iv: enc.iv });
+      setDecryptedMap(prev => ({ ...prev, [saved.id]: text }));
+      setThreads(prev => prev.map(t =>
+        t.threadId === tid
+          ? { ...t, messages: t.messages.map(m => m.id === tempId ? { ...saved } : m) }
+          : t
+      ));
+    } catch {
+      setDecryptedMap(prev => {
+        if (!(tempId in prev)) return prev;
+        const next = { ...prev };
+        delete next[tempId];
+        return next;
+      });
+      setThreads(prev => prev.map(t =>
+        t.threadId === tid
+          ? { ...t, messages: t.messages.filter(m => m.id !== tempId) }
+          : t
+      ));
     } finally { setSending(false); }
+  };
+
+  const handleReplyChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setReplyText(e.target.value);
+    if (!e.target.value.trim() || !selectedId) return;
+    const now = Date.now();
+    if (now - lastTypingSentAt.current < 3000) return;
+    lastTypingSentAt.current = now;
+    signalAdminTyping(selectedId);
   };
 
   const fmtTime = (iso: string) => {
@@ -284,7 +410,9 @@ const AdminFeedbackPanel: React.FC<{ onClose: () => void; onUnreadChange: (n: nu
                     <div className="min-w-0">
                       <p className="font-mono text-sm text-gray-200 truncate">{t.threadId.slice(0, 12)}…</p>
                       <p className="text-xs text-gray-500 truncate mt-0.5">
-                        {decryptedMap[t.messages[t.messages.length - 1]?.id] ?? '…'}
+                        {typingThreads[t.threadId]
+                          ? <span className="text-violet-400 italic">digitando…</span>
+                          : (decryptedMap[t.messages[t.messages.length - 1]?.id] ?? '…')}
                       </p>
                     </div>
                   </div>
@@ -327,6 +455,20 @@ const AdminFeedbackPanel: React.FC<{ onClose: () => void; onUnreadChange: (n: nu
                 </div>
               ))
             )}
+            {selectedId && typingThreads[selectedId] && (
+              <div className="flex items-end gap-2 justify-start">
+                <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center shrink-0 mb-1">
+                  <User className="w-3.5 h-3.5 text-gray-400" />
+                </div>
+                <div className="bg-gray-700 text-gray-300 rounded-2xl rounded-bl-sm px-4 py-2.5">
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+              </div>
+            )}
             <div ref={bottomRef} />
           </div>
 
@@ -335,7 +477,7 @@ const AdminFeedbackPanel: React.FC<{ onClose: () => void; onUnreadChange: (n: nu
             <div className="flex gap-3">
               <textarea
                 value={replyText}
-                onChange={e => setReplyText(e.target.value)}
+                onChange={handleReplyChange}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReply(); } }}
                 placeholder="Responder… (Enter para enviar)"
                 rows={2}
@@ -421,16 +563,23 @@ const AdminDashboard: React.FC<{ token: string; onLogout: () => void }> = ({ tok
     if (showNewsEditor) fetchNews();
   }, [showNewsEditor]);
 
-  // Poll unread feedback count every 12 seconds
+  // Realtime unread badge: initial REST fetch seeds the count, then SSE bumps it
+  // for each new user message that hasn't been marked seen.
   useEffect(() => {
-    const check = async () => {
-      const msgs = await fetchAllFeedbackMessages();
+    let mounted = true;
+    fetchAllFeedbackMessages().then(msgs => {
+      if (!mounted) return;
       const seen = getSeenIds();
       setUnreadCount(msgs.filter(m => m.sender === 'user' && !seen.has(m.id)).length);
-    };
-    check();
-    const id = setInterval(check, 12_000);
-    return () => clearInterval(id);
+    }).catch(() => {});
+    const close = streamAdminMessages({
+      onMessage: (raw) => {
+        if (raw.sender !== 'user') return;
+        if (getSeenIds().has(raw.id)) return;
+        setUnreadCount(c => c + 1);
+      },
+    });
+    return () => { mounted = false; close(); };
   }, []);
 
   const handleCreate = async (e: React.FormEvent) => {

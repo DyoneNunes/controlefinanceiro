@@ -1,7 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageSquare, Send, Lock, RefreshCw, Shield } from 'lucide-react';
 import { getOrCreateThreadId, encryptFeedback, decryptFeedback } from '../utils/feedbackCrypto';
-import { sendMessage, fetchMessages } from '../services/feedbackService';
+import {
+  sendMessage,
+  fetchMessages,
+  streamUserMessages,
+  signalUserTyping,
+} from '../services/feedbackService';
 import type { FeedbackMessage } from '../services/feedbackService';
 
 // ─────────────────────────────────────────────────────────────────
@@ -32,6 +37,11 @@ export const FeedbackChat = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // Tracks IDs already shown to avoid flicker on re-fetch
   const knownIds = useRef<Set<string>>(new Set());
+  // Throttle outgoing typing signals to once per 3 s.
+  const lastTypingSentAt = useRef<number>(0);
+
+  const [adminTyping, setAdminTyping] = useState(false);
+  const adminTypingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Decrypt raw server messages ──────────────────────────────
 
@@ -67,11 +77,42 @@ export const FeedbackChat = () => {
 
   useEffect(() => { loadMessages(); }, [loadMessages]);
 
+  // Realtime: subscribe to SSE for this thread. EventSource auto-reconnects.
+  useEffect(() => {
+    const close = streamUserMessages(threadId, {
+      onMessage: async (raw) => {
+        if (knownIds.current.has(raw.id)) return;
+        knownIds.current.add(raw.id);
+        let text = '(mensagem criptografada)';
+        try {
+          text = await decryptFeedback({ ciphertext: raw.ciphertext, iv: raw.iv }, threadId);
+        } catch { /* keep placeholder */ }
+        setMessages(prev =>
+          prev.some(m => m.id === raw.id)
+            ? prev
+            : [...prev, { id: raw.id, sender: raw.sender, text, created_at: raw.created_at }],
+        );
+        // Admin just sent a real message — clear the indicator.
+        if (raw.sender === 'admin') setAdminTyping(false);
+      },
+      onTyping: (ev) => {
+        if (ev.sender !== 'admin') return;
+        setAdminTyping(true);
+        if (adminTypingTimer.current) clearTimeout(adminTypingTimer.current);
+        adminTypingTimer.current = setTimeout(() => setAdminTyping(false), 4000);
+      },
+    });
+    return () => {
+      close();
+      if (adminTypingTimer.current) clearTimeout(adminTypingTimer.current);
+    };
+  }, [threadId]);
+
   // ── Auto-scroll to bottom on new messages ────────────────────
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, adminTyping]);
 
   // ── Send message ─────────────────────────────────────────────
 
@@ -101,14 +142,12 @@ export const FeedbackChat = () => {
         iv: encrypted.iv,
       });
 
-      // Replace optimistic entry with server-confirmed ID
+      // Replace optimistic entry with server-confirmed ID. The SSE stream will
+      // deliver the same message — knownIds dedupes it on arrival.
       knownIds.current.add(saved.id);
       setMessages(prev =>
         prev.map(m => (m.id === tempId ? { ...m, id: saved.id } : m))
       );
-
-      // Poll for admin reply (mock replies after ~2 s)
-      setTimeout(() => loadMessages(true), 2500);
     } catch {
       // Remove optimistic entry on failure
       setMessages(prev => prev.filter(m => m.id !== tempId));
@@ -124,6 +163,15 @@ export const FeedbackChat = () => {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    if (!e.target.value.trim()) return;
+    const now = Date.now();
+    if (now - lastTypingSentAt.current < 3000) return;
+    lastTypingSentAt.current = now;
+    signalUserTyping(threadId);
   };
 
   const fmt = (iso: string) => {
@@ -232,6 +280,21 @@ export const FeedbackChat = () => {
             ))
           )}
 
+          {adminTyping && (
+            <div className="flex items-end gap-2 justify-start">
+              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center shrink-0 mb-1">
+                <Shield className="w-4 h-4 text-indigo-600" />
+              </div>
+              <div className="bg-gray-100 text-gray-500 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+                <div className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600 text-center">
               {error}
@@ -247,7 +310,7 @@ export const FeedbackChat = () => {
             <textarea
               ref={textareaRef}
               value={input}
-              onChange={e => setInput(e.target.value)}
+              onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Digite seu feedback… (Enter para enviar, Shift+Enter para nova linha)"
               rows={2}
